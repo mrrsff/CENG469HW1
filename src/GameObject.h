@@ -5,31 +5,42 @@
 #include "typedefs.h"
 #include "Mesh.h"
 #include "ShaderProgram.h"
+#include <iostream>
+#include <string>
 
 class MeshRenderer;
 
 class GameObject {
-	friend class MeshRenderer;
 public:
-    Mesh mesh;
+	std::string name;
 	Vector3 position;
 	Vector3 scale;
 	Quaternion rotation;
-	ShaderProgram shader;
+	ShaderProgram* shader;
+    Mesh* mesh;
 
-    GameObject(const Mesh& mesh,const ShaderProgram& shader);
+	GameObject();
+    GameObject(std::string name, Mesh* mesh, ShaderProgram* shader);
 
-	void Draw();
-
-	// TODO: trigger this with dirty flag
-	// void OnUpdate();
+	Matrix4 getModelingMatrix();
 	
+	void SetMesh(Mesh* mesh);
+	void SetShader(ShaderProgram* shader);
 	void SetPosition(Vector3 position);
 	void SetScale(Vector3 scale);
 	void SetRotation(Quaternion rotation);
 
+	friend std::ostream& operator<<(std::ostream& os, const GameObject& gameObject) {
+		os << "GameObject: " << gameObject.name << std::endl;
+		os << "Position: " << gameObject.position.x << ", " << gameObject.position.y << ", " << gameObject.position.z << std::endl;
+		os << "Scale: " << gameObject.scale.x << ", " << gameObject.scale.y << ", " << gameObject.scale.z << std::endl;
+		os << "Rotation: " << gameObject.rotation.x << ", " << gameObject.rotation.y << ", " << gameObject.rotation.z << ", " << gameObject.rotation.w << std::endl;
+		os << *gameObject.mesh << *gameObject.shader;
+		return os;
+	}
+
 private:
-	bool m_dirty = true; // Make this useful
+	bool modelingMatrixDirty;
 	Matrix4 modelingMatrix;
 	void updateModelingMatrix();
 };

@@ -1,9 +1,17 @@
 #include "GameObject.h"
-#include "Mesh.h"
-#include "ShaderProgram.h"
-#include "typedefs.h"
 
-GameObject::GameObject(const Mesh& mesh,const ShaderProgram& shader) {
+GameObject::GameObject() {
+	name = "GameObject";
+	mesh = nullptr;
+	shader = nullptr;
+	position = Vector3(0, 0, 0);
+	scale = Vector3(1, 1, 1);
+	rotation = Quaternion(1, 0, 0, 0);
+	updateModelingMatrix();
+}
+
+GameObject::GameObject(std::string name, Mesh* mesh, ShaderProgram* shader) {
+	this->name = name;
 	this->mesh = mesh;
 	this->shader = shader;
 	position = Vector3(0, 0, 0);
@@ -12,30 +20,40 @@ GameObject::GameObject(const Mesh& mesh,const ShaderProgram& shader) {
 	updateModelingMatrix();
 }
 
-void GameObject::Draw() {
-	shader.use();
-	shader.setMat4("model", model);
-	mesh.Draw(shader);
+Matrix4 GameObject::getModelingMatrix() {
+	if (modelingMatrixDirty) {
+		updateModelingMatrix();
+	}
+	return modelingMatrix;
+}
+
+void GameObject::SetMesh(Mesh* mesh) {
+	this->mesh = mesh;
+}
+
+void GameObject::SetShader(ShaderProgram* shader) {
+	this->shader = shader;
 }
 
 void GameObject::SetPosition(Vector3 position) {
 	this->position = position;
-	updateModelingMatrix();
+	modelingMatrixDirty = true;
 }
 
 void GameObject::SetScale(Vector3 scale) {
 	this->scale = scale;
-	updateModelingMatrix();
+	modelingMatrixDirty = true;
 }
 
 void GameObject::SetRotation(Quaternion rotation) {
 	this->rotation = rotation;
-	updateModelingMatrix();
+	modelingMatrixDirty = true;
 }
 
 void GameObject::updateModelingMatrix() {
-	model = glm::mat4(1.0f);
-	model = glm::translate(model, position);
-	model = glm::scale(model, scale);
-	model = model * glm::mat4_cast(rotation);
+	modelingMatrixDirty = false;
+	modelingMatrix = glm::mat4(1.0f);
+	modelingMatrix = glm::translate(modelingMatrix, position);
+	modelingMatrix = glm::scale(modelingMatrix, scale);
+	modelingMatrix = modelingMatrix * glm::mat4_cast(rotation);
 }

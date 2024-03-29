@@ -69,7 +69,12 @@
 		"typeindex": "cpp",
 		"typeinfo": "cpp",
 		"valarray": "cpp",
-		"variant": "cpp"
+		"variant": "cpp",
+		"*.ipp": "cpp",
+		"codecvt": "cpp"
 	},
-	"C_Cpp.errorSquiggles": "disabled"
+	"C_Cpp.errorSquiggles": "disabled",
+	"C_Cpp.codeAnalysis.clangTidy.checks.disabled": [
+		"clang-diagnostic-error"
+	]
 }
