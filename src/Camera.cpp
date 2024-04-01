@@ -1,7 +1,9 @@
 #include "Camera.h"
 
 void Camera::setPosition(Vector3 position) {
-	this->position = position;
+	this->position.x = position.x;
+	this->position.y = position.y;
+	this->position.z = position.z;
 	viewMatrixDirty = true;
 }
 void Camera::setRotation(Quaternion rotation) {
@@ -106,13 +108,17 @@ Camera::Camera(Vector3 position, Quaternion rotation, double fieldOfView, double
 	viewMatrixDirty = true;
 	projectionMatrixDirty = true;
 }
-Camera::~Camera() {
-}
+Camera::~Camera() {}
 void Camera::updateViewMatrix() {
 	viewMatrixDirty = false;
-	viewMatrix = glm::mat4(1.0f);
-	viewMatrix = glm::translate(viewMatrix, position);
-	viewMatrix = viewMatrix * glm::mat4_cast(rotation);
+
+	// Calculate up, right, and forward vectors
+	glm::mat4 rotationMatrix = glm::mat4_cast(rotation);
+	up = glm::vec3(rotationMatrix * glm::vec4(0, 1, 0, 0));
+	right = glm::vec3(rotationMatrix * glm::vec4(1, 0, 0, 0));
+	forward = glm::vec3(rotationMatrix * glm::vec4(0, 0, -1, 0));
+
+	viewMatrix = glm::lookAt(position, position + forward, up);	
 }
 void Camera::updateProjectionMatrix() {
 	projectionMatrixDirty = false;

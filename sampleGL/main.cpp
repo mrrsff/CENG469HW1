@@ -54,9 +54,9 @@ struct Normal
     GLfloat x, y, z;
 };
 
-struct Face
+struct Triangle
 {
-	Face(int v[], int t[], int n[]) {
+	Triangle(int v[], int t[], int n[]) {
 		vIndex[0] = v[0];
 		vIndex[1] = v[1];
 		vIndex[2] = v[2];
@@ -73,7 +73,7 @@ struct Face
 vector<Vertex> gVertices;
 vector<Texture> gTextures;
 vector<Normal> gNormals;
-vector<Face> gFaces;
+vector<Triangle> gFaces;
 
 GLuint gVertexAttribBuffer, gIndexBuffer;
 GLint gInVertexLoc, gInNormalLoc;
@@ -144,7 +144,7 @@ bool ParseObj(const string& fileName)
 						tIndex[c] -= 1;
 					}
 
-                    gFaces.push_back(Face(vIndex, tIndex, nIndex));
+                    gFaces.push_back(Triangle(vIndex, tIndex, nIndex));
                 }
                 else
                 {
@@ -414,7 +414,7 @@ void initVBO()
 	}
 
 
-	glBufferData(GL_ARRAY_BUFFER, gVertexDataSizeInBytes + gNormalDataSizeInBytes, 0, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, gVertexDataSizeInBytes + gNormalDataSizeInBytes, 0, GL_STATIC_DRAW); // allocate space for both vertex and normal data
 	glBufferSubData(GL_ARRAY_BUFFER, 0, gVertexDataSizeInBytes, vertexData);
 	glBufferSubData(GL_ARRAY_BUFFER, gVertexDataSizeInBytes, gNormalDataSizeInBytes, normalData);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexDataSizeInBytes, indexData, GL_STATIC_DRAW);

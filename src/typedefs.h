@@ -5,6 +5,7 @@
 #include "glm/gtc/quaternion.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include <iostream>
+#include <iomanip>
 
 typedef glm::quat Quaternion;
 
@@ -14,5 +15,4 @@ typedef glm::vec4 Vector4;
 
 typedef glm::mat3 Matrix3;
 typedef glm::mat4 Matrix4;
-
 #endif // TYPEDEFS_H

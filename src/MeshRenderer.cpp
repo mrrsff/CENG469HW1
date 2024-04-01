@@ -26,11 +26,15 @@ void MeshRenderer::Draw(GameObject& gameObject) {
 	assert(glGetError() == GL_NO_ERROR);
 	
 	// Bind the camera UBO
-	GLuint cameraUBOIndex = glGetUniformBlockIndex(shader->getID(), "Matrices");
+	GLuint cameraUBOIndex = glGetUniformBlockIndex(shader->getID(), "CameraMatrices");
 	glUniformBlockBinding(shader->getID(), cameraUBOIndex, 1);
 	assert(glGetError() == GL_NO_ERROR);
-
+	
+	// Set the model matrix
 	shader->setMat4("model", gameObject.getModelingMatrix());
+
+	// Set if texture is enabled
+	shader->setBool("useTexture", gameObject.mesh->textures.size() > 0);
 
 	gameObject.mesh->Draw();
 
@@ -52,21 +56,31 @@ void MeshRenderer::setupLightsUBO() {
 			float quadratic[MAX_LIGHTS];
 		};
 	*/
+	lightsData = __lights();
 	lightsData.numLights = lights.size();
 	for (int i = 0; i < lights.size(); i++) {
-		lightsData.position[i] = lights[i].position;
-		lightsData.ambient[i] = lights[i].ambient;
-		lightsData.diffuse[i] = lights[i].diffuse;
-		lightsData.specular[i] = lights[i].specular;
-		lightsData.constant[i] = lights[i].constant;
-		lightsData.linear[i] = lights[i].linear;
-		lightsData.quadratic[i] = lights[i].quadratic;
+		__light light = __light();
+		light.position = lights[i].position;
+		light.quadratic = lights[i].quadratic;
+
+		light.ambient = lights[i].ambient;
+		light.linear = lights[i].linear;
+
+		light.diffuse = lights[i].diffuse;
+		light.constant = lights[i].constant;
+		
+		light.specular = lights[i].specular;
+		light.colorIntensity = lights[i].colorIntensity;
+		lightsData.lightSources[i] = light;
 	}
+
 	
 	glGenBuffers(1, &lightUBO);
 	glBindBuffer(GL_UNIFORM_BUFFER, lightUBO);
 	glBufferData(GL_UNIFORM_BUFFER, sizeof(lightsData), &lightsData, GL_STATIC_DRAW);
 	glBindBufferBase(GL_UNIFORM_BUFFER, 0, lightUBO);
+	lightsDataPtr = glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(lightsData), GL_MAP_READ_BIT);
+	
 	glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	assert(glGetError() == GL_NO_ERROR);
 }
@@ -80,14 +94,55 @@ void MeshRenderer::setupCameraUBO() {
 			vec3 eyePos;
 		};
 	*/
+
+	int size = sizeof(cameraData);
+	glGenBuffers(1, &cameraUBO);
+	UpdateCameraUBO();
+}
+
+void MeshRenderer::UpdateCameraUBO() {
 	cameraData.view = camera->getViewMatrix();
 	cameraData.projection = camera->getProjectionMatrix();
+	cameraData.padding = 0.0f;
 	cameraData.eyePos = camera->getPosition();
 
-	glGenBuffers(1, &cameraUBO);
-	glBindBuffer(GL_UNIFORM_BUFFER, cameraUBO);
-	glBufferData(GL_UNIFORM_BUFFER, sizeof(cameraData), &cameraData, GL_STATIC_DRAW);
-	glBindBufferBase(GL_UNIFORM_BUFFER, 1, cameraUBO);
-	glBindBuffer(GL_UNIFORM_BUFFER, 0);
+	int size = sizeof(cameraData);
+	glBindBuffer(GL_UNIFORM_BUFFER, cameraUBO); // Bind buffer
+	glBufferData(GL_UNIFORM_BUFFER, size, &cameraData, GL_STATIC_DRAW); // Set buffer data
+	glBindBufferBase(GL_UNIFORM_BUFFER, 1, cameraUBO); // Bind buffer to binding point 1
+	cameraDataPtr = glMapBufferRange(GL_UNIFORM_BUFFER, 0, size, GL_MAP_READ_BIT);
+	// glFlushMappedBufferRange(GL_UNIFORM_BUFFER, 0, size); // Flush buffer
+	glBindBuffer(GL_UNIFORM_BUFFER, 0); // Unbind buffer
 	assert(glGetError() == GL_NO_ERROR);
+}
+
+void MeshRenderer::DebugLightUBO()
+{
+	// Print the lights UBO
+	std::cout << "Lights UBO" << std::endl;
+	__lights* lightsData = (__lights*)lightsDataPtr;
+	std::cout << "numLights: " << lightsData->numLights << std::endl;
+	// for (int i = 0; i < lightsData->numLights; i++) {
+	// 	std::cout << "Light " << i << std::endl;
+	// 	std::cout << "position: "; printVector3(lightsData->position[i]);
+	// 	std::cout << "ambient: "; printVector3(lightsData->ambient[i]);
+	// 	std::cout << "diffuse: "; printVector3(lightsData->diffuse[i]);
+	// 	std::cout << "specular: "; printVector3(lightsData->specular[i]);
+	// 	std::cout << "constant: " << lightsData->constant[i] << std::endl;
+	// 	std::cout << "linear: " << lightsData->linear[i] << std::endl;
+	// 	std::cout << "quadratic: " << lightsData->quadratic[i] << std::endl;
+	// }
+	glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+}
+void MeshRenderer::DebugCameraUBO()
+{
+	// Print the camera UBO
+	std::cout << "Camera UBO" << std::endl;
+	__camera* cameraData = (__camera*)cameraDataPtr;
+	std::cout << "view: " << std::endl;
+	printMatrix4(cameraData->view);
+	std::cout << "projection: " << std::endl;
+	printMatrix4(cameraData->projection);
+	std::cout << "eyePos: "; printVector3(cameraData->eyePos);	
 }

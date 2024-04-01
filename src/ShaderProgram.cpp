@@ -56,75 +56,92 @@ void ShaderProgram::unuse() {
 }
 void ShaderProgram::setBool(const std::string &name, bool value) const { 
     int loc = glGetUniformLocation(ID, name.c_str());
-    if (loc == -1) {
-        std::cout << "ERROR::SHADER::UNIFORM_NOT_FOUND: " << name << std::endl;
-        assert(false);
-    }       
     glUniform1i(loc, (int)value); 
     assert(glGetError() == GL_NO_ERROR);
 }
 void ShaderProgram::setInt(const std::string &name, int value) const {
     int loc = glGetUniformLocation(ID, name.c_str());
-    if (loc == -1) {
-        std::cout << "ERROR::SHADER::UNIFORM_NOT_FOUND: " << name << std::endl;
-        assert(false);
-    }
     glUniform1i(loc, value); 
     assert(glGetError() == GL_NO_ERROR);
 }
 void ShaderProgram::setFloat(const std::string &name, float value) const {
     int loc = glGetUniformLocation(ID, name.c_str());
-    if (loc == -1) {
-        std::cout << "ERROR::SHADER::UNIFORM_NOT_FOUND: " << name << std::endl;
-        assert(false);
-    }
     glUniform1f(loc, value); 
     assert(glGetError() == GL_NO_ERROR);
 }
 void ShaderProgram::setVec2(const std::string &name, const Vector2 &value) const { 
     int loc = glGetUniformLocation(ID, name.c_str());
-    if (loc == -1) {
-        std::cout << "ERROR::SHADER::UNIFORM_NOT_FOUND: " << name << std::endl;
-        assert(false);
-    }
     glUniform2fv(loc, 1, glm::value_ptr(value)); 
     assert(glGetError() == GL_NO_ERROR);
 }
 void ShaderProgram::setVec3(const std::string &name, const Vector3 &value) const {
     int loc = glGetUniformLocation(ID, name.c_str());
-    if (loc == -1) {
-        std::cout << "ERROR::SHADER::UNIFORM_NOT_FOUND: " << name << std::endl;
-        assert(false);
-    }
     glUniform3fv(loc, 1, glm::value_ptr(value)); 
     assert(glGetError() == GL_NO_ERROR);
 }
 void ShaderProgram::setVec4(const std::string &name, const Vector4 &value) const {
     int loc = glGetUniformLocation(ID, name.c_str());
-    if (loc == -1) {
-        std::cout << "ERROR::SHADER::UNIFORM_NOT_FOUND: " << name << std::endl;
-        assert(false);
-    }
     glUniform3fv(loc, 1, glm::value_ptr(value)); 
     assert(glGetError() == GL_NO_ERROR);
 }
 void ShaderProgram::setMat3(const std::string &name, const Matrix3 &value) const { 
     int loc = glGetUniformLocation(ID, name.c_str());
-    if (loc == -1) {
-        std::cout << "ERROR::SHADER::UNIFORM_NOT_FOUND: " << name << std::endl;
-        assert(false); 
-    }
     glUniformMatrix3fv(loc, 1, GL_FALSE, glm::value_ptr(value));
     assert(glGetError() == GL_NO_ERROR);
 }
 void ShaderProgram::setMat4(const std::string &name, const Matrix4 &value) const { 
     int loc = glGetUniformLocation(ID, name.c_str());
-    if (loc == -1) {
-        std::cout << "ERROR::SHADER::UNIFORM_NOT_FOUND: " << name << std::endl;
-        assert(false);
-    }
     glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(value));
     assert(glGetError() == GL_NO_ERROR);
+}
+
+bool ShaderProgram::getBool(const std::string &name) const {
+    int loc = glGetUniformLocation(ID, name.c_str());
+    int value;
+    glGetUniformiv(ID, loc, &value);
+    return (bool)value;
+}
+int ShaderProgram::getInt(const std::string &name) const {
+    int loc = glGetUniformLocation(ID, name.c_str());
+    int value;
+    glGetUniformiv(ID, loc, &value);
+    return value;
+}
+float ShaderProgram::getFloat(const std::string &name) const {
+    int loc = glGetUniformLocation(ID, name.c_str());
+    float value;
+    glGetUniformfv(ID, loc, &value);
+    return value;
+}
+Vector2 ShaderProgram::getVec2(const std::string &name) const {
+    int loc = glGetUniformLocation(ID, name.c_str());
+    Vector2 value;
+    glGetUniformfv(ID, loc, glm::value_ptr(value));
+    return value;
+}
+Vector3 ShaderProgram::getVec3(const std::string &name) const {
+    int loc = glGetUniformLocation(ID, name.c_str());
+    Vector3 value;
+    glGetUniformfv(ID, loc, glm::value_ptr(value));
+    return value;
+}
+Vector4 ShaderProgram::getVec4(const std::string &name) const {
+    int loc = glGetUniformLocation(ID, name.c_str());
+    Vector4 value;
+    glGetUniformfv(ID, loc, glm::value_ptr(value));
+    return value;
+}
+Matrix3 ShaderProgram::getMat3(const std::string &name) const {
+    int loc = glGetUniformLocation(ID, name.c_str());
+    Matrix3 value;
+    glGetUniformfv(ID, loc, glm::value_ptr(value));
+    return value;
+}
+Matrix4 ShaderProgram::getMat4(const std::string &name) const {
+    int loc = glGetUniformLocation(ID, name.c_str());
+    Matrix4 value;
+    glGetUniformfv(ID, loc, glm::value_ptr(value));
+    return value;
 }
 
 void ShaderProgram::checkCompileErrors(GLuint shader, std::string type) {
@@ -144,4 +161,13 @@ void ShaderProgram::checkCompileErrors(GLuint shader, std::string type) {
         }
     }
     assert(glGetError() == GL_NO_ERROR);
+}
+
+int ShaderProgram::getUniformLocation(const std::string &name) const {
+    int loc = glGetUniformLocation(ID, name.c_str());
+    if (loc == -1) {
+        std::cout << "ERROR::SHADER::UNIFORM_NOT_FOUND: " << name << std::endl;
+        assert(false);
+    }
+    return loc;
 }

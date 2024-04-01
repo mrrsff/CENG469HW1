@@ -10,6 +10,7 @@
 #include <iostream>
 
 #include "typedefs.h"
+#include "printExtensions.h"
 
 class ShaderProgram {
 public:
@@ -28,6 +29,16 @@ public:
     void setVec4(const std::string &name, const Vector4 &value) const;
     void setMat3(const std::string &name, const Matrix3 &value) const;
     void setMat4(const std::string &name, const Matrix4 &value) const;
+
+    bool getBool(const std::string &name) const;
+    int getInt(const std::string &name) const;
+    float getFloat(const std::string &name) const;
+    Vector2 getVec2(const std::string &name) const;
+    Vector3 getVec3(const std::string &name) const;
+    Vector4 getVec4(const std::string &name) const;
+    Matrix3 getMat3(const std::string &name) const;
+    Matrix4 getMat4(const std::string &name) const;
+
     unsigned int getID() const { return ID; }
 
     friend std::ostream& operator<<(std::ostream& os, const ShaderProgram& shaderProgram) {
@@ -38,6 +49,7 @@ public:
 private:
     unsigned int ID;
     void checkCompileErrors(GLuint shader, std::string type);
+    int getUniformLocation(const std::string &name) const;
 };
 
 #endif

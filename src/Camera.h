@@ -2,6 +2,7 @@
 #define CAMERA_H
 
 #include "typedefs.h"
+#include "printExtensions.h"
 
 enum CameraType {
 	ORTHOGRAPHIC,

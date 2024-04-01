@@ -50,6 +50,18 @@ void GameObject::SetRotation(Quaternion rotation) {
 	modelingMatrixDirty = true;
 }
 
+Quaternion GameObject::GetRotation() {
+	return rotation;
+}
+
+Vector3 GameObject::GetPosition() {
+	return position;
+}
+
+Vector3 GameObject::GetScale() {
+	return scale;
+}
+
 void GameObject::updateModelingMatrix() {
 	modelingMatrixDirty = false;
 	modelingMatrix = glm::mat4(1.0f);

@@ -5,6 +5,7 @@
 #include "typedefs.h"
 #include "Mesh.h"
 #include "ShaderProgram.h"
+#include "printExtensions.h"
 #include <iostream>
 #include <string>
 
@@ -29,6 +30,10 @@ public:
 	void SetPosition(Vector3 position);
 	void SetScale(Vector3 scale);
 	void SetRotation(Quaternion rotation);
+
+	Quaternion GetRotation();
+	Vector3 GetPosition();
+	Vector3 GetScale();
 
 	friend std::ostream& operator<<(std::ostream& os, const GameObject& gameObject) {
 		os << "GameObject: " << gameObject.name << std::endl;
