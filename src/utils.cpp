@@ -141,3 +141,10 @@ Quaternion utilsFromAxisAngle(Vector3 axis, double angle)
 	Quaternion rotation = glm::angleAxis(glm::radians((float)angle), axis);
 	return rotation;
 }
+
+Vector3 utilsRotatePointAroundAxis(Vector3 point, Vector3 axis, double angle)
+{
+    Quaternion rotation = utilsFromAxisAngle(axis, angle);
+    Vector3 rotatedPoint = rotation * point;
+    return rotatedPoint;
+}

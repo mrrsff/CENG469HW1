@@ -145,7 +145,6 @@ public:
 	Mesh();
 	Mesh(std::vector<Vector3>& vertices, std::vector<Vector3>& normals, std::vector<Texture>& textures, std::vector<Quad>& quads);
     Mesh(std::vector<Vector3>& vertices, std::vector<Vector3>& normals, std::vector<Texture>& textures, std::vector<Triangle>& faces);
-	~Mesh();
 
 	Mesh* Clone();
 

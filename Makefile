@@ -6,7 +6,7 @@ glutLib = $(vendorsDir)/glut
 
 includes = -I./external/** -I./external -I./src
 links = -lGL -L$(glfwLib) -lglfw -L$(glewLib) -lGLEW -lfreetype
-flags = -DGL_SILENCE_DEPRECATION -DGLM_ENABLE_EXPERIMENTAL -O3 -std=c++17 -w -Wfatal-errors -ggdb3 -pedantic # -fsanitize=address
+flags = -DGL_SILENCE_DEPRECATION -DGLM_ENABLE_EXPERIMENTAL -O3 -std=c++17 -w -Wfatal-errors -ggdb3 -pedantic
 output = main
 objectDir = ./core
 objectFiles = $(objectDir)/*.o

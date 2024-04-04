@@ -85,7 +85,9 @@ Vector3 objScale = Vector3(1.0f, 1.0f, 1.0f);
 
 Mesh* triangleCubeMesh;
 Mesh* quadCubeMesh;
-int subdivLevel = 3;
+int subdivLevel = 7;
+
+double context_time = 0.0;
 
 Vector2 cameraMovement = Vector2(0.0f, 0.0f);
 
@@ -112,7 +114,7 @@ void init()
 	std::string cwd = std::filesystem::current_path().string();
 	objPath = cwd + objPath;
 
-	int objCount = 6;
+	int objCount = 4;
 	
 	// Create materials for each object (each object must have a different color)
 	for (int i = 0; i < objCount; i++)
@@ -127,7 +129,7 @@ void init()
 		material.diffuse = Vector3(red + randomOffset, green + randomOffset, blue + randomOffset);
 
 		material.specular = Vector3(1.0f, 1.0f, 1.0f);
-		material.shininess = 256.0f;
+		material.shininess = 128.0f;
 		materials.push_back(material);		
 	}
 
@@ -153,26 +155,16 @@ void init()
 		gameObjects.push_back(gameObject);
 
 		// Cache subdivided meshes
-		subdividedMeshes[gameObject] = std::vector<Mesh*>(subdivLevel + 1);
-		subdividedMeshes[gameObject][0] = mesh;
+		subdividedMeshes[gameObject].push_back(mesh);
 		for (int j = 1; j < subdivLevel; j++)
 		{
-			std::cout << "Before subdividing: " << gameObject->name << " Level: " << j - 1 << std::endl;
-			std::vector<Triangle>* triangles = subdividedMeshes[gameObject][j - 1]->triangles;
-			for (int k = 0; k < triangles->size(); k++)
-			{
-				Triangle t = triangles->at(k);
-				std::cout << "Triangle: " << t.vIndex[0] << " " << t.vIndex[1] << " " << t.vIndex[2] << std::endl;
-			}
 			Mesh *subdividedMesh = MeshSubdivider::subdivideCatmullClark(subdividedMeshes[gameObject][j - 1], 1);
-			std::cout << "After subdividing: " << gameObject->name << " Level: " << j << std::endl;
-			triangles = subdividedMesh->triangles;
-			for (int k = 0; k < triangles->size(); k++)
+			if (subdividedMesh == nullptr)
 			{
-				Triangle t = triangles->at(k);
-				std::cout << "Triangle: " << t.vIndex[0] << " " << t.vIndex[1] << " " << t.vIndex[2] << std::endl;
+				std::cout << "Subdivision failed" << std::endl;
+				exit(-1);
 			}
-			subdividedMeshes[gameObject][j] = subdividedMesh;
+			subdividedMeshes[gameObject].push_back(subdividedMesh);
 		}
 	}
 
@@ -183,7 +175,7 @@ void init()
 	}
 	avgObjectPosition /= gameObjects.size();
 
-	float zDistance = 15.0f;
+	float zDistance = gameObjects.size() * 3.0f;
 	Vector3 cameraPos = avgObjectPosition;
 	cameraPos.z += zDistance;
 
@@ -244,8 +236,8 @@ void updateObjects()
 		If i%3==1, move up and down (sin wave)
 		If i%3==2, scale up and down (sin wave)
 	*/
-	float sinValue = sin(glfwGetTime());
-	float skewedSinValue = sin(glfwGetTime() * 0.5f);
+	float sinValue = sin(context_time) * 0.5f;
+	float skewedSinValue = sin((context_time + 1.0f) / 4) * 0.5f;
 
 	for (int i = 0; i < gameObjects.size(); i++)
 	{
@@ -253,7 +245,7 @@ void updateObjects()
 		if(i % 4 == 0)
 		{
 			Quaternion rotation = gameObject->GetRotation();
-			Quaternion rotationDelta = utilsFromAxisAngle(Vector3(0.0f, 1.0f, 0.0f), 0.5f + i * 0.1f);
+			Quaternion rotationDelta = utilsFromAxisAngle(Vector3(0.0f, 1.0f, 0.0f), 0.5f);
 			rotation = rotation * rotationDelta;
 			gameObject->SetRotation(rotation);
 		}
@@ -266,26 +258,27 @@ void updateObjects()
 		else if(i % 4 == 2)
 		{
 			Vector3 scale = gameObject->GetScale();
-			scale.x = 1.0f + skewedSinValue * 0.5f;
-			scale.y = 1.0f + skewedSinValue * 0.5f;
-			scale.z = 1.0f + skewedSinValue * 0.5f;
+			scale.x = 1.0f + skewedSinValue * 0.2f;
+			scale.y = 1.0f + skewedSinValue * 0.2f;
+			scale.z = 1.0f + skewedSinValue * 0.2f;
 			gameObject->SetScale(scale);
 		}
 		else if(i % 4 == 3)
 		{
-			// Rotate around objects
+			// Rotate around the game objects
 			Vector3 position = gameObject->GetPosition();
 			Vector3 center = Vector3(0.0f, 0.0f, 0.0f);
-			for (int i = 0; i < gameObjects.size(); i++)
+			for (int j = 0; j < gameObjects.size(); j++)
 			{
-				if (gameObjects[i] == gameObject) continue;
-				center += gameObjects[i]->GetPosition();
+				center += gameObjects[j]->GetPosition();
 			}
-			center /= gameObjects.size()-1;
-			float radius = gameObjects.size() * 3.0f;
-			float angle = glfwGetTime() * 0.5f;
-			position.x = center.x + cos(angle) * radius;
-			position.z = center.z + sin(angle) * radius;
+			center /= gameObjects.size();
+			Vector3 cameraForward = mainCamera->getForward();
+			Vector3 cameraRight = mainCamera->getRight();
+			float radius = 7.0f;
+			float angle = context_time / 10;
+			position.x = center.x + cameraRight.x * radius * sin(angle) + cameraForward.x * radius * cos(angle);
+			position.z = center.z + cameraRight.z * radius * sin(angle) + cameraForward.z * radius * cos(angle);
 			gameObject->SetPosition(position);
 		}
 	}
@@ -300,6 +293,8 @@ void increaseSubdivisionLevel()
 		Mesh* mesh = subdividedMeshes[obj][subdivisionLevel];
 		obj->SetMesh(mesh);
 	}
+
+	std::cout << "Subdivision Level: " << subdivisionLevel << std::endl;
 }
 void decreaseSubdivisionLevel()
 {
@@ -310,6 +305,8 @@ void decreaseSubdivisionLevel()
 		Mesh* mesh = subdividedMeshes[obj][subdivisionLevel];
 		obj->SetMesh(mesh);
 	}
+
+	std::cout << "Subdivision Level: " << subdivisionLevel << std::endl;
 }
 void drawObjects()
 {
@@ -497,9 +494,6 @@ void mainLoop(GLFWwindow* window)
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		// Movement
-		updateObjects();
-
 		// Print avg fps
 		static double previousSeconds = glfwGetTime();
 		static int frameCount;
@@ -520,6 +514,11 @@ void mainLoop(GLFWwindow* window)
 			frameCount = 0;
 		}
 		frameCount++;
+
+		if(!stopGameObjects)
+			context_time += elapsedSeconds;
+		// Movement
+		updateObjects();
 
 		// Draw game objects
 		drawObjects();

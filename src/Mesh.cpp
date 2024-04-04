@@ -29,24 +29,13 @@ Mesh::Mesh(std::vector<Vector3>& vertices, std::vector<Vector3>& normals, std::v
 
 	this->setupMesh();
 }
-Mesh::~Mesh() {
-	glDeleteVertexArrays(1, &VAO);
-	glDeleteBuffers(1, &VBO);
-	glDeleteBuffers(1, &EBO);
-}
-Mesh* Mesh::Clone() {    
-	std::vector<Vector3> *newVertices = new std::vector<Vector3>(*vertices);
-	std::vector<Vector3> *newNormals = new std::vector<Vector3>(*normals);
-	std::vector<Texture> *newTextures = new std::vector<Texture>(*textures);
-	std::vector<Triangle> *newTriangles = new std::vector<Triangle>(*triangles);
-	std::vector<Quad> *newQuads = new std::vector<Quad>(*quads);
-
+Mesh* Mesh::Clone() {
 	Mesh *newMesh = new Mesh();
-	newMesh->vertices = newVertices;
-	newMesh->normals = newNormals;
-	newMesh->textures = newTextures;
-	newMesh->triangles = newTriangles;
-	newMesh->quads = newQuads;
+	newMesh->vertices = new std::vector<Vector3>(*vertices);
+	newMesh->normals = new std::vector<Vector3>(*normals);
+	newMesh->textures = new std::vector<Texture>(*textures);
+	newMesh->triangles = new std::vector<Triangle>(*triangles);
+	newMesh->quads = new std::vector<Quad>(*quads);
 	newMesh->quadMesh = quadMesh;
     return newMesh;
 }
@@ -90,7 +79,6 @@ void Mesh::setupMesh() {
 			newTriangles->push_back(t2);
 		}
 		this->triangles = newTriangles;
-		std::cout << "Converted quads to triangles" << std::endl;
 	}
 
 	// Create new vertices and normals
@@ -119,7 +107,6 @@ void Mesh::setupMesh() {
 			newNormals.push_back(normal);
 			newIndices.push_back(index++);
 		}
-		// std::cout << "Setup triangle: " << t.vIndex[0] << " " << t.vIndex[1] << " " << t.vIndex[2] << std::endl;
 	}
 
 	// Create VAO, VBO, EBO
