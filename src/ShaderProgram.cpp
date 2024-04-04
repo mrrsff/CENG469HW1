@@ -42,6 +42,12 @@ ShaderProgram::ShaderProgram(const char* vertexPath, const char* fragmentPath) {
     checkCompileErrors(ID, "PROGRAM");
     glDeleteShader(vertex);
     glDeleteShader(fragment);
+
+    // Clear memory
+    vertexCode.clear();
+    fragmentCode.clear();
+
+    assert(glGetError() == GL_NO_ERROR);
 }
 
 void ShaderProgram::AddGeometryShader(const char* geometryPath) {

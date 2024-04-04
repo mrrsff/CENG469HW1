@@ -1,4 +1,5 @@
 #pragma region Include Statements
+
 #define _USE_MATH_DEFINES
 #define GLEW_STATIC
 #define CALLBACK
@@ -15,8 +16,6 @@
 #include <map>
 #include <math.h> 
 #include <filesystem>
-#include <thread>
-#include <mutex>
 
 #include <GL/glew.h>
 // #include <GL/gl.h>   // The GL Header File
@@ -86,12 +85,9 @@ Vector3 objScale = Vector3(1.0f, 1.0f, 1.0f);
 
 Mesh* triangleCubeMesh;
 Mesh* quadCubeMesh;
-int subdivLevel = 2;
+int subdivLevel = 1;
 
 Vector2 cameraMovement = Vector2(0.0f, 0.0f);
-
-std::mutex gameObjectsMutex;
-std::mutex subdividedMeshesMutex;
 
 #pragma endregion
 
@@ -116,7 +112,7 @@ void init()
 	std::string cwd = std::filesystem::current_path().string();
 	objPath = cwd + objPath;
 
-	int objCount = 6;
+	int objCount = 1;
 	triangleCubeMesh = ParseObjFile((objPath + "cube.obj").c_str(), true, true);
 	quadCubeMesh = ParseObjFile((objPath + "cube.obj").c_str(), false, true);
 	
@@ -164,7 +160,7 @@ void init()
 		subdividedMeshes[gameObject].push_back(mesh);
 		for (int j = 1; j < subdivLevel; j++)
 		{
-			Mesh* subdividedMesh = MeshSubdivider::subdivideCatmullClark(mesh, j);
+			Mesh* subdividedMesh = MeshSubdivider::subdivideCatmullClark(subdividedMeshes[gameObject][j - 1], 1);
 			subdividedMeshes[gameObject].push_back(subdividedMesh);
 		}
 	}

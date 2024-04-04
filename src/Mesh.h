@@ -166,8 +166,7 @@ public:
 	void DebugMeshInfo();
 
 private:
-	int indexCount;
-	
+	std::vector<int> glIndices;
 	bool m_dirty = false;
 
     unsigned int VAO, VBO, EBO;

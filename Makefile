@@ -1,33 +1,12 @@
-OSFLAG :=
-ifeq ($(OS),Windows_NT)
-	OSFLAG = -D WIN32
-else
-	UNAME_S := $(shell uname -s)
-	ifeq ($(UNAME_S),Linux)
-		OSFLAG = -D LINUX
-	endif
-	ifeq ($(UNAME_S),Darwin)
-		OSFLAG = -D OSX
-	endif
-endif
-
 vendorsDir = ./external
 glewLib = $(vendorsDir)/glew/lib
 glfwLib = $(vendorsDir)/glfw/lib
 freetypeLib = $(vendorsDir)/freetype/lib
 glutLib = $(vendorsDir)/glut
 
-windowsGLLibPath = $(vendorsDir)/opengl/lib
-
-ifeq ($(OSFLAG),-D WIN32) # Windows
-	includes = -I./external/glm -I./external -I./external/glfw/include -I./external/glew -I./external/freetype -I./src
-	links = -L$(windowsGLLibPath) -L$(glfwLib) -L$(glewLib)
-else
-	includes = -I./external/** -I./external -I./src
-	links = -lGL -L$(glfwLib) -lglfw -L$(glewLib) -lGLEW -lfreetype
-endif
-
-flags = -DGL_SILENCE_DEPRECATION -DGLM_ENABLE_EXPERIMENTAL -O3 -std=c++17 -w -Wfatal-errors -ggdb3
+includes = -I./external/** -I./external -I./src
+links = -lGL -L$(glfwLib) -lglfw -L$(glewLib) -lGLEW -lfreetype
+flags = -DGL_SILENCE_DEPRECATION -DGLM_ENABLE_EXPERIMENTAL -O3 -std=c++17 -w -Wfatal-errors -ggdb3 -pedantic -fsanitize=address
 output = main
 objectDir = ./core
 objectFiles = $(objectDir)/*.o
@@ -37,9 +16,10 @@ extensionsFiles = $(extensionsDir)/*.cpp
 extensionsObjectFiles = $(objectDir)/*.o
 
 debuggerPath = /mnt/d/WSL/renderdoc_1.31/bin/qrenderdoc
+logName = MemRep.log
 
-.PHONY: run clean $(output) debug
-
+.PHONY: run clean $(output) debug gdb valgrind
+ 
 all: $(output)
 
 $(output):
@@ -82,3 +62,13 @@ debug:
 	@make -s all
 	@echo "Running $(output) with debugger..."
 	@$(debuggerPath)
+
+gdb:
+	@make -s all
+	@echo "Running $(output) with gdb..."
+	@gdb -ex run ./$(output)
+
+valgrind:
+	@make -s all
+	@echo "Running $(output) with valgrind..."
+	@valgrind --leak-check=full --track-origins=yes --log-file="$(logName)" ./$(output)

@@ -8,7 +8,6 @@ Mesh* MeshSubdivider::subdivideCatmullClark(Mesh* mesh, int nSubdivisions) {
 	// For now, we only subdivide the vertices and faces. We will add support for normals and textures later.
 	// std::vector<Vector3> normals = mesh->normals;
 	// std::vector<Texture> texCoords = mesh->textures;
-	std::cout << "Subdividing mesh with " << nSubdivisions << " subdivisions." << std::endl;
 
 	if (!mesh->quadMesh) { // Triangle topology
 		for (int i = 0; i < nSubdivisions; i++) {
@@ -187,6 +186,16 @@ Mesh* MeshSubdivider::subdivideCatmullClark(Mesh* mesh, int nSubdivisions) {
 
 			newMesh->triangles = newTriangles;
 			newMesh->UpdateMesh();
+
+			// Clear caches
+			incidentFaces.clear();
+			incidentEdges.clear();
+			incidentFacesForEdges.clear();
+			edgeMidpoints.clear();
+			facePoints.clear();
+			oldEdges.clear();
+			newTriangles.clear();
+
 			return newMesh;
 		}
 	}
@@ -393,6 +402,16 @@ Mesh* MeshSubdivider::subdivideCatmullClark(Mesh* mesh, int nSubdivisions) {
 
 			newMesh->quads = newQuads;
 			newMesh->UpdateMesh();
+
+			// Clear caches
+			incidentFaces.clear();
+			incidentEdges.clear();
+			incidentFacesForEdges.clear();
+			edgeMidpoints.clear();
+			facePoints.clear();
+			oldEdges.clear();
+			newQuads.clear();
+			
 			return newMesh;
 		}
 	}

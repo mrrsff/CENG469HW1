@@ -7,7 +7,7 @@
         ],
         "executable": "/mnt/d/METU/CENG469/HW1/main",
         "inject": false,
-        "numQueuedFrames": 6,
+        "numQueuedFrames": 8,
         "options": {
             "allowFullscreen": false,
             "allowVSync": false,
@@ -16,13 +16,13 @@
             "captureCallstacks": true,
             "captureCallstacksOnlyDraws": false,
             "debugOutputMute": true,
-            "delayForDebugger": 2,
+            "delayForDebugger": 1,
             "hookIntoChildren": false,
             "refAllResources": true,
             "softMemoryLimit": 0,
             "verifyBufferAccess": true
         },
-        "queuedFrameCap": 0,
+        "queuedFrameCap": 1,
         "workingDir": ""
     }
 }
