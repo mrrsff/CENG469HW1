@@ -287,7 +287,9 @@ void updateObjects()
 void increaseSubdivisionLevel()
 {
 	// Increase subdivision level of rendered mesh
-	subdivisionLevel = subdivisionLevel < subdividedMeshes[gameObjects[0]].size() - 1 ? subdivisionLevel + 1 : subdivisionLevel;
+	int newSubdivisionLevel = subdivisionLevel < subdivLevel - 1 ? subdivisionLevel + 1 : subdivLevel - 1;
+	if (newSubdivisionLevel == subdivisionLevel) return;
+	subdivisionLevel = newSubdivisionLevel;
 	for (GameObject* obj: gameObjects)
 	{
 		Mesh* mesh = subdividedMeshes[obj][subdivisionLevel];
@@ -299,7 +301,9 @@ void increaseSubdivisionLevel()
 void decreaseSubdivisionLevel()
 {
 	// Decrease subdivision level of the mesh
-	subdivisionLevel = subdivisionLevel > 0 ? subdivisionLevel - 1 : 0;
+	int newSubdivisionLevel = subdivisionLevel > 0 ? subdivisionLevel - 1 : 0;
+	if (newSubdivisionLevel == subdivisionLevel) return;
+	subdivisionLevel = newSubdivisionLevel;
 	for (GameObject* obj: gameObjects)
 	{
 		Mesh* mesh = subdividedMeshes[obj][subdivisionLevel];
@@ -385,6 +389,8 @@ void inputCallback(GLFWwindow* window, int key, int scancode, int action, int mo
 
 		// Decrease subdivision level
 		if (key == GLFW_KEY_E) decreaseSubdivisionLevel();
+
+		if (key == GLFW_KEY_R) context_time = 0;
 
 		// Change perspective
 		if (key == GLFW_KEY_P)
