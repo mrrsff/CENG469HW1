@@ -39,7 +39,8 @@ void MeshRenderer::Draw(GameObject* gameObject) {
 	shader->setMat4("model", gameObject->getModelingMatrix());
 
 	// Set if texture is enabled
-	shader->setBool("useTexture", gameObject->mesh->textures.size() > 0);
+	bool useTexture = gameObject->mesh != nullptr && gameObject->mesh->textures != nullptr && gameObject->mesh->textures->size() > 0;
+	shader->setBool("useTexture", useTexture);
 
 	gameObject->mesh->Draw();
 

@@ -135,33 +135,22 @@ struct Quad
 class Mesh {
 public:
 
-	std::vector<Vector3> vertices;
-	std::vector<Texture> textures;
-	std::vector<Vector3> normals;
-	std::vector<Triangle> triangles;
-	std::vector<Quad> quads;
+	std::vector<Vector3>* vertices;
+	std::vector<Texture>* textures;
+	std::vector<Vector3>* normals;
+	std::vector<Triangle>* triangles;
+	std::vector<Quad>* quads;
 	bool quadMesh = false;
 
-	std::vector<Vector3> GetVertices() { return vertices; }
-	std::vector<Texture> GetTextures() { return textures; }
-	std::vector<Vector3> GetNormals() { return normals; }
-	std::vector<Triangle> GetTriangles() { return triangles; }
-	std::vector<Quad> GetQuads() { return quads; }
-
 	Mesh();
-	Mesh(std::vector<Vector3> vertices, std::vector<Vector3> normals, std::vector<Texture> textures, std::vector<Quad> quads);
-    Mesh(std::vector<Vector3> vertices, std::vector<Vector3> normals, std::vector<Texture> textures, std::vector<Triangle> faces);
-	Mesh(Mesh* mesh);
+	Mesh(std::vector<Vector3>& vertices, std::vector<Vector3>& normals, std::vector<Texture>& textures, std::vector<Quad>& quads);
+    Mesh(std::vector<Vector3>& vertices, std::vector<Vector3>& normals, std::vector<Texture>& textures, std::vector<Triangle>& faces);
+	~Mesh();
+
+	Mesh* Clone();
 
 	void UpdateMesh();
     void Draw();
-
-	friend std::ostream& operator<<(std::ostream& os, const Mesh& mesh) {
-		os << "Mesh: " << std::endl;
-		os << "Vertices count: " << mesh.vertices.size() << std::endl;
-		os << "Faces count: " << mesh.triangles.size() << std::endl;
-		return os;
-	}
 
 	void DebugMeshInfo();
 

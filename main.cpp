@@ -85,7 +85,7 @@ Vector3 objScale = Vector3(1.0f, 1.0f, 1.0f);
 
 Mesh* triangleCubeMesh;
 Mesh* quadCubeMesh;
-int subdivLevel = 1;
+int subdivLevel = 3;
 
 Vector2 cameraMovement = Vector2(0.0f, 0.0f);
 
@@ -112,9 +112,7 @@ void init()
 	std::string cwd = std::filesystem::current_path().string();
 	objPath = cwd + objPath;
 
-	int objCount = 1;
-	triangleCubeMesh = ParseObjFile((objPath + "cube.obj").c_str(), true, true);
-	quadCubeMesh = ParseObjFile((objPath + "cube.obj").c_str(), false, true);
+	int objCount = 6;
 	
 	// Create materials for each object (each object must have a different color)
 	for (int i = 0; i < objCount; i++)
@@ -133,35 +131,48 @@ void init()
 		materials.push_back(material);		
 	}
 
-	// Create gameobjects and cache subdivided meshes
+	// Load obj files
+	triangleCubeMesh = ParseObjFile((objPath + "cube.obj").c_str(), true, true);
+	quadCubeMesh = ParseObjFile((objPath + "cube.obj").c_str(), false, true);
 	
 	// Create gameobjects and cache subdivided meshes
 	for (int i = 0; i < objCount; i++)
 	{
 		ShaderProgram* shader = new ShaderProgram(vertexShaderSource.c_str(), fragmentShaderSource.c_str());
-		if (shader == nullptr)
-		{
-			std::cerr << "Failed to create shader program" << std::endl;
-			exit(-1);
-		}
+		assert(shader != nullptr);
+
 		GameObject* gameObject = new GameObject(shader);
 		gameObject->SetShader(shader);
-		gameObject->name = "Cube" + std::to_string(i);
+		gameObject->name = "Cube " + std::to_string(i);
 		Mesh* mesh = i % 2 == 0 ? triangleCubeMesh : quadCubeMesh;
+		// Print mesh triangles
 		gameObject->SetMesh(mesh);
 		gameObject->SetScale(objScale);
 		gameObject->SetMaterial(&materials[i]);
 		gameObject->SetPosition(Vector3(5.0f * i, 0.0f, 0.0f));
 		gameObjects.push_back(gameObject);
 
-		// TODO: MULTITHREADING
-
 		// Cache subdivided meshes
-		subdividedMeshes[gameObject].push_back(mesh);
+		subdividedMeshes[gameObject] = std::vector<Mesh*>(subdivLevel + 1);
+		subdividedMeshes[gameObject][0] = mesh;
 		for (int j = 1; j < subdivLevel; j++)
 		{
-			Mesh* subdividedMesh = MeshSubdivider::subdivideCatmullClark(subdividedMeshes[gameObject][j - 1], 1);
-			subdividedMeshes[gameObject].push_back(subdividedMesh);
+			std::cout << "Before subdividing: " << gameObject->name << " Level: " << j - 1 << std::endl;
+			std::vector<Triangle>* triangles = subdividedMeshes[gameObject][j - 1]->triangles;
+			for (int k = 0; k < triangles->size(); k++)
+			{
+				Triangle t = triangles->at(k);
+				std::cout << "Triangle: " << t.vIndex[0] << " " << t.vIndex[1] << " " << t.vIndex[2] << std::endl;
+			}
+			Mesh *subdividedMesh = MeshSubdivider::subdivideCatmullClark(subdividedMeshes[gameObject][j - 1], 1);
+			std::cout << "After subdividing: " << gameObject->name << " Level: " << j << std::endl;
+			triangles = subdividedMesh->triangles;
+			for (int k = 0; k < triangles->size(); k++)
+			{
+				Triangle t = triangles->at(k);
+				std::cout << "Triangle: " << t.vIndex[0] << " " << t.vIndex[1] << " " << t.vIndex[2] << std::endl;
+			}
+			subdividedMeshes[gameObject][j] = subdividedMesh;
 		}
 	}
 

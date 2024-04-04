@@ -3,6 +3,7 @@
 
 #include "typedefs.h"
 
+
 void printMatrix3(Matrix3 matrix);
 void printMatrix4(Matrix4 matrix);
 void printVector3(Vector3 vector);

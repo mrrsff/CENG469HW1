@@ -37,15 +37,6 @@ public:
 	Vector3 GetPosition();
 	Vector3 GetScale();
 
-	friend std::ostream& operator<<(std::ostream& os, const GameObject& gameObject) {
-		os << "GameObject: " << gameObject.name << std::endl;
-		os << "Position: " << gameObject.position.x << ", " << gameObject.position.y << ", " << gameObject.position.z << std::endl;
-		os << "Scale: " << gameObject.scale.x << ", " << gameObject.scale.y << ", " << gameObject.scale.z << std::endl;
-		os << "Rotation: " << gameObject.rotation.x << ", " << gameObject.rotation.y << ", " << gameObject.rotation.z << ", " << gameObject.rotation.w << std::endl;
-		os << *gameObject.mesh << *gameObject.shader;
-		return os;
-	}
-
 private:
 	bool modelingMatrixDirty;
 	Matrix4 modelingMatrix;

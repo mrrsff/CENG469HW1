@@ -1,8 +1,8 @@
 #include "MeshSubdivider.h"
 
 Mesh* MeshSubdivider::subdivideCatmullClark(Mesh* mesh, int nSubdivisions) {
-	Mesh* newMesh = new Mesh(mesh);
-
+	// Print newMesh vs mesh
+	Mesh* newMesh = mesh->Clone();
 	// This will divide any topological mesh into a quad mesh.
 	
 	// For now, we only subdivide the vertices and faces. We will add support for normals and textures later.
@@ -21,8 +21,9 @@ Mesh* MeshSubdivider::subdivideCatmullClark(Mesh* mesh, int nSubdivisions) {
 			*/
 
 			// Cache the old vertices and faces
-			std::vector<Vector3> oldVertices = newMesh->vertices;
-			std::vector<Triangle> oldTriangles = newMesh->triangles;
+			std::vector<Vector3>* oldVertices = newMesh->vertices;
+			std::vector<Triangle>* oldTriangles = newMesh->triangles;
+			std::cout << std::endl;
 			std::vector<std::pair<int, int>> oldEdges;
 
 			std::map<int, std::vector<int>> incidentFaces;
@@ -30,12 +31,16 @@ Mesh* MeshSubdivider::subdivideCatmullClark(Mesh* mesh, int nSubdivisions) {
 			std::map<std::pair<int, int>, std::vector<int>> incidentFacesForEdges;
 			std::map<std::pair<int, int>, Vector3> edgeMidpoints;
 			std::vector<Vector3> facePoints;
-			for (int i = 0; i < oldTriangles.size(); i++) 
+			for (int i = 0; i < oldTriangles->size(); i++) 
 			{	
+				int v0Index = oldTriangles->at(i).vIndex[0];
+				int v1Index = oldTriangles->at(i).vIndex[1];
+				int v2Index = oldTriangles->at(i).vIndex[2];
+
 				// Any quad has 4 edges
-				std::pair<int, int> edge1 = getEdgePair(oldTriangles[i].vIndex[0], oldTriangles[i].vIndex[1]);
-				std::pair<int, int> edge2 = getEdgePair(oldTriangles[i].vIndex[1], oldTriangles[i].vIndex[2]);
-				std::pair<int, int> edge3 = getEdgePair(oldTriangles[i].vIndex[2], oldTriangles[i].vIndex[3]);
+				std::pair<int, int> edge1 = getEdgePair(v0Index, v1Index);
+				std::pair<int, int> edge2 = getEdgePair(v1Index, v2Index);
+				std::pair<int, int> edge3 = getEdgePair(v2Index, v0Index);
 
 				if (std::find(oldEdges.begin(), oldEdges.end(), edge1) == oldEdges.end()) {
 					oldEdges.push_back(edge1);
@@ -48,36 +53,36 @@ Mesh* MeshSubdivider::subdivideCatmullClark(Mesh* mesh, int nSubdivisions) {
 				}
 
 				// VERTICES
-				incidentFaces[oldTriangles[i].vIndex[0]].push_back(i);
-				incidentFaces[oldTriangles[i].vIndex[1]].push_back(i);
-				incidentFaces[oldTriangles[i].vIndex[2]].push_back(i);
+				incidentFaces[v0Index].push_back(i);
+				incidentFaces[v1Index].push_back(i);
+				incidentFaces[oldTriangles->at(i).vIndex[2]].push_back(i);
 
 				// MIDPOINTS OF EDGES
-				edgeMidpoints[edge1] = (oldVertices[edge1.first] + oldVertices[edge1.second]) / 2.0f;
-				edgeMidpoints[edge2] = (oldVertices[edge2.first] + oldVertices[edge2.second]) / 2.0f;
-				edgeMidpoints[edge3] = (oldVertices[edge3.first] + oldVertices[edge3.second]) / 2.0f;
+				edgeMidpoints[edge1] = (oldVertices->at(edge1.first) + oldVertices->at(edge1.second)) / 2.0f;
+				edgeMidpoints[edge2] = (oldVertices->at(edge2.first) + oldVertices->at(edge2.second)) / 2.0f;
+				edgeMidpoints[edge3] = (oldVertices->at(edge3.first) + oldVertices->at(edge3.second)) / 2.0f;
 
 				// INCIDENT EDGES FOR VERTICES
-				std::vector<std::pair<int, int>> incidentEdgesForVertex0 = incidentEdges[oldTriangles[i].vIndex[0]];
-				std::vector<std::pair<int, int>> incidentEdgesForVertex1 = incidentEdges[oldTriangles[i].vIndex[1]];
-				std::vector<std::pair<int, int>> incidentEdgesForVertex2 = incidentEdges[oldTriangles[i].vIndex[2]];
+				std::vector<std::pair<int, int>> incidentEdgesForVertex0 = incidentEdges[v0Index];
+				std::vector<std::pair<int, int>> incidentEdgesForVertex1 = incidentEdges[v1Index];
+				std::vector<std::pair<int, int>> incidentEdgesForVertex2 = incidentEdges[v2Index];
 				if (std::find(incidentEdgesForVertex0.begin(), incidentEdgesForVertex0.end(), edge1) == incidentEdgesForVertex0.end()) {
-					incidentEdges[oldTriangles[i].vIndex[0]].push_back(edge1);
+					incidentEdges[v0Index].push_back(edge1);
 				}
 				if (std::find(incidentEdgesForVertex0.begin(), incidentEdgesForVertex0.end(), edge3) == incidentEdgesForVertex0.end()) {
-					incidentEdges[oldTriangles[i].vIndex[0]].push_back(edge3);
+					incidentEdges[v0Index].push_back(edge3);
 				}
 				if (std::find(incidentEdgesForVertex1.begin(), incidentEdgesForVertex1.end(), edge1) == incidentEdgesForVertex1.end()) {
-					incidentEdges[oldTriangles[i].vIndex[1]].push_back(edge1);
+					incidentEdges[v1Index].push_back(edge1);
 				}
 				if (std::find(incidentEdgesForVertex1.begin(), incidentEdgesForVertex1.end(), edge2) == incidentEdgesForVertex1.end()) {
-					incidentEdges[oldTriangles[i].vIndex[1]].push_back(edge2);
+					incidentEdges[v1Index].push_back(edge2);
 				}
 				if (std::find(incidentEdgesForVertex2.begin(), incidentEdgesForVertex2.end(), edge2) == incidentEdgesForVertex2.end()) {
-					incidentEdges[oldTriangles[i].vIndex[2]].push_back(edge2);
+					incidentEdges[v2Index].push_back(edge2);
 				}
 				if (std::find(incidentEdgesForVertex2.begin(), incidentEdgesForVertex2.end(), edge3) == incidentEdgesForVertex2.end()) {
-					incidentEdges[oldTriangles[i].vIndex[2]].push_back(edge3);
+					incidentEdges[v2Index].push_back(edge3);
 				}
 				
 				// INCIDENT FACES FOR EDGES
@@ -86,7 +91,7 @@ Mesh* MeshSubdivider::subdivideCatmullClark(Mesh* mesh, int nSubdivisions) {
 				incidentFacesForEdges[edge3].push_back(i);
 
 				// Face points
-				Vector3 facePoint = calculateFacePoint({oldTriangles[i].vIndex[0], oldTriangles[i].vIndex[1], oldTriangles[i].vIndex[2]}, newMesh);
+				Vector3 facePoint = calculateFacePoint({v0Index, v1Index, v2Index}, newMesh);
 				facePoints.push_back(facePoint);
 			}
 
@@ -117,10 +122,10 @@ Mesh* MeshSubdivider::subdivideCatmullClark(Mesh* mesh, int nSubdivisions) {
 					- Connecting each new face point to the new edge points of the edges defining the old face.
 					- Connecting each new vertex point tot he new edge points of all old edges incident on the old vertex.
 			*/
-			for (int i = 0; i < oldVertices.size(); i++) {
+			for (int i = 0; i < oldVertices->size(); i++) {
 				Vector3 avg_face_points = Vector3(0.0f, 0.0f, 0.0f);
 				Vector3 avg_mid_edges = Vector3(0.0f, 0.0f, 0.0f);
-				Vector3 old_coords = oldVertices[i];
+				Vector3 old_coords = oldVertices->at(i);
 				std::vector<int> incidentFaceIndices = incidentFaces[i];
 				int n = incidentFaceIndices.size(); // valence of the vertex
 				std::vector<std::pair<int, int>> incidentEdgeIndices = incidentEdges[i];
@@ -142,38 +147,39 @@ Mesh* MeshSubdivider::subdivideCatmullClark(Mesh* mesh, int nSubdivisions) {
 
 				Vector3 newVertex = m1 * avg_face_points + m2 * avg_mid_edges + m3 * old_coords;
 
-				newMesh->vertices[i] = newVertex;
+				newMesh->vertices->at(i) = newVertex;
 			}
 
 			// Add all edge points to the new vertices, then store the indices of the edge points in a map for later use.
 			std::map<std::pair<int, int>, int> edgePointIndices;
 			for (int i = 0; i < edgePoints.size(); i++) {
-				newMesh->vertices.push_back(edgePoints[i]);
-				edgePointIndices[oldEdges[i]] = newMesh->vertices.size() - 1;
+				newMesh->vertices->push_back(edgePoints[i]);
+				edgePointIndices[oldEdges[i]] = newMesh->vertices->size() - 1;
 			}
 
 			// 4. Reconstruct the mesh with the new vertices and faces
 			std::vector<Triangle> newTriangles;
-			for (int i = 0; i < oldTriangles.size(); i++)
+			for (int i = 0; i < oldTriangles->size(); i++)
 			{
 				Vector3 facePoint = facePoints[i];
-				newMesh->vertices.push_back(facePoint);
-				int vFIndex = newMesh->vertices.size() - 1;
+				newMesh->vertices->push_back(facePoint);
+				int vFIndex = newMesh->vertices->size() - 1;
+
+				Triangle curTriangle = oldTriangles->at(i);
 				
+				// Get vertex indices
+				int v0Index = curTriangle.vIndex[0];
+				int v1Index = curTriangle.vIndex[1];
+				int v2Index = curTriangle.vIndex[2];
 
 				// Get the incident edge points
-				std::pair<int, int> edge1 = getEdgePair(oldTriangles[i].vIndex[0], oldTriangles[i].vIndex[1]);
-				std::pair<int, int> edge2 = getEdgePair(oldTriangles[i].vIndex[1], oldTriangles[i].vIndex[2]);
-				std::pair<int, int> edge3 = getEdgePair(oldTriangles[i].vIndex[2], oldTriangles[i].vIndex[3]);
+				std::pair<int, int> edge1 = getEdgePair(v0Index, v1Index);
+				std::pair<int, int> edge2 = getEdgePair(v1Index, v2Index);
+				std::pair<int, int> edge3 = getEdgePair(v2Index, v2Index);
 
 				int vE01Index = edgePointIndices[edge1];
 				int vE12Index = edgePointIndices[edge2];
 				int vE23Index = edgePointIndices[edge3];
-
-				// Get vertex indices
-				int v0Index = oldTriangles[i].vIndex[0];
-				int v1Index = oldTriangles[i].vIndex[1];
-				int v2Index = oldTriangles[i].vIndex[2];
 
 				// Add the new faces
 				newTriangles.push_back(Triangle({ vFIndex, v0Index, vE01Index }));
@@ -184,7 +190,7 @@ Mesh* MeshSubdivider::subdivideCatmullClark(Mesh* mesh, int nSubdivisions) {
 				newTriangles.push_back(Triangle({ vFIndex, vE23Index, v0Index }));
 			}
 
-			newMesh->triangles = newTriangles;
+			newMesh->triangles = &newTriangles;
 			newMesh->UpdateMesh();
 
 			// Clear caches
@@ -194,7 +200,11 @@ Mesh* MeshSubdivider::subdivideCatmullClark(Mesh* mesh, int nSubdivisions) {
 			edgeMidpoints.clear();
 			facePoints.clear();
 			oldEdges.clear();
-			newTriangles.clear();
+
+			std::cout << "Triangles just before return: "<< std::endl;
+			for (int i = 0; i < newMesh->triangles->size(); i++) {
+				std::cout << "Triangle: " << newMesh->triangles->at(i).vIndex[0] << " " << newMesh->triangles->at(i).vIndex[1] << " " << newMesh->triangles->at(i).vIndex[2] << std::endl;
+			}
 
 			return newMesh;
 		}
@@ -212,8 +222,8 @@ Mesh* MeshSubdivider::subdivideCatmullClark(Mesh* mesh, int nSubdivisions) {
 			*/
 
 			// Cache the old vertices and faces
-			std::vector<Vector3> oldVertices = newMesh->vertices;
-			std::vector<Quad> oldQuads = newMesh->quads;
+			std::vector<Vector3>* oldVertices = newMesh->vertices;
+			std::vector<Quad>* oldQuads = newMesh->quads;
 			std::vector<std::pair<int, int>> oldEdges;
 
 			// Calculate incident faces for each vertex in a map
@@ -228,13 +238,13 @@ Mesh* MeshSubdivider::subdivideCatmullClark(Mesh* mesh, int nSubdivisions) {
 			// Calculate midpoints of edges in a map
 			std::map<std::pair<int, int>, Vector3> edgeMidpoints;
 
-			for (int i = 0; i < oldQuads.size(); i++) 
+			for (int i = 0; i < oldQuads->size(); i++) 
 			{	
 				// Any quad has 4 edges
-				std::pair<int, int> edge1 = getEdgePair(oldQuads[i].vIndex[0], oldQuads[i].vIndex[1]);
-				std::pair<int, int> edge2 = getEdgePair(oldQuads[i].vIndex[1], oldQuads[i].vIndex[2]);
-				std::pair<int, int> edge3 = getEdgePair(oldQuads[i].vIndex[2], oldQuads[i].vIndex[3]);
-				std::pair<int, int> edge4 = getEdgePair(oldQuads[i].vIndex[3], oldQuads[i].vIndex[0]);
+				std::pair<int, int> edge1 = getEdgePair(oldQuads->at(i).vIndex[0], oldQuads->at(i).vIndex[1]);
+				std::pair<int, int> edge2 = getEdgePair(oldQuads->at(i).vIndex[1], oldQuads->at(i).vIndex[2]);
+				std::pair<int, int> edge3 = getEdgePair(oldQuads->at(i).vIndex[2], oldQuads->at(i).vIndex[3]);
+				std::pair<int, int> edge4 = getEdgePair(oldQuads->at(i).vIndex[3], oldQuads->at(i).vIndex[0]);
 
 				if (std::find(oldEdges.begin(), oldEdges.end(), edge1) == oldEdges.end()) {
 					oldEdges.push_back(edge1);
@@ -250,46 +260,46 @@ Mesh* MeshSubdivider::subdivideCatmullClark(Mesh* mesh, int nSubdivisions) {
 				}
 
 				// VERTICES
-				incidentFaces[oldQuads[i].vIndex[0]].push_back(i);
-				incidentFaces[oldQuads[i].vIndex[1]].push_back(i);
-				incidentFaces[oldQuads[i].vIndex[2]].push_back(i);
-				incidentFaces[oldQuads[i].vIndex[3]].push_back(i);
+				incidentFaces[oldQuads->at(i).vIndex[0]].push_back(i);
+				incidentFaces[oldQuads->at(i).vIndex[1]].push_back(i);
+				incidentFaces[oldQuads->at(i).vIndex[2]].push_back(i);
+				incidentFaces[oldQuads->at(i).vIndex[3]].push_back(i);
 
 				// MIDPOINTS OF EDGES
-				edgeMidpoints[edge1] = (oldVertices[edge1.first] + oldVertices[edge1.second]) / 2.0f;
-				edgeMidpoints[edge2] = (oldVertices[edge2.first] + oldVertices[edge2.second]) / 2.0f;
-				edgeMidpoints[edge3] = (oldVertices[edge3.first] + oldVertices[edge3.second]) / 2.0f;
-				edgeMidpoints[edge4] = (oldVertices[edge4.first] + oldVertices[edge4.second]) / 2.0f;
+				edgeMidpoints[edge1] = (oldVertices->at(edge1.first) + oldVertices->at(edge1.second)) / 2.0f;
+				edgeMidpoints[edge2] = (oldVertices->at(edge2.first) + oldVertices->at(edge2.second)) / 2.0f;
+				edgeMidpoints[edge3] = (oldVertices->at(edge3.first) + oldVertices->at(edge3.second)) / 2.0f;
+				edgeMidpoints[edge4] = (oldVertices->at(edge4.first) + oldVertices->at(edge4.second)) / 2.0f;
 
 				// INCIDENT EDGES FOR VERTICES
-				std::vector<std::pair<int, int>> incidentEdgesForVertex0 = incidentEdges[oldQuads[i].vIndex[0]];
-				std::vector<std::pair<int, int>> incidentEdgesForVertex1 = incidentEdges[oldQuads[i].vIndex[1]];
-				std::vector<std::pair<int, int>> incidentEdgesForVertex2 = incidentEdges[oldQuads[i].vIndex[2]];
-				std::vector<std::pair<int, int>> incidentEdgesForVertex3 = incidentEdges[oldQuads[i].vIndex[3]];
+				std::vector<std::pair<int, int>> incidentEdgesForVertex0 = incidentEdges[oldQuads->at(i).vIndex[0]];
+				std::vector<std::pair<int, int>> incidentEdgesForVertex1 = incidentEdges[oldQuads->at(i).vIndex[1]];
+				std::vector<std::pair<int, int>> incidentEdgesForVertex2 = incidentEdges[oldQuads->at(i).vIndex[2]];
+				std::vector<std::pair<int, int>> incidentEdgesForVertex3 = incidentEdges[oldQuads->at(i).vIndex[3]];
 
 				if (std::find(incidentEdgesForVertex0.begin(), incidentEdgesForVertex0.end(), edge1) == incidentEdgesForVertex0.end()) {
-					incidentEdges[oldQuads[i].vIndex[0]].push_back(edge1);
+					incidentEdges[oldQuads->at(i).vIndex[0]].push_back(edge1);
 				}
 				if (std::find(incidentEdgesForVertex1.begin(), incidentEdgesForVertex1.end(), edge1) == incidentEdgesForVertex1.end()) {
-					incidentEdges[oldQuads[i].vIndex[1]].push_back(edge1);
+					incidentEdges[oldQuads->at(i).vIndex[1]].push_back(edge1);
 				}
 				if (std::find(incidentEdgesForVertex1.begin(), incidentEdgesForVertex1.end(), edge2) == incidentEdgesForVertex1.end()) {
-					incidentEdges[oldQuads[i].vIndex[1]].push_back(edge2);
+					incidentEdges[oldQuads->at(i).vIndex[1]].push_back(edge2);
 				}
 				if (std::find(incidentEdgesForVertex2.begin(), incidentEdgesForVertex2.end(), edge2) == incidentEdgesForVertex2.end()) {
-					incidentEdges[oldQuads[i].vIndex[2]].push_back(edge2);
+					incidentEdges[oldQuads->at(i).vIndex[2]].push_back(edge2);
 				}
 				if (std::find(incidentEdgesForVertex2.begin(), incidentEdgesForVertex2.end(), edge3) == incidentEdgesForVertex2.end()) {
-					incidentEdges[oldQuads[i].vIndex[2]].push_back(edge3);
+					incidentEdges[oldQuads->at(i).vIndex[2]].push_back(edge3);
 				}
 				if (std::find(incidentEdgesForVertex3.begin(), incidentEdgesForVertex3.end(), edge3) == incidentEdgesForVertex3.end()) {
-					incidentEdges[oldQuads[i].vIndex[3]].push_back(edge3);
+					incidentEdges[oldQuads->at(i).vIndex[3]].push_back(edge3);
 				}
 				if (std::find(incidentEdgesForVertex3.begin(), incidentEdgesForVertex3.end(), edge4) == incidentEdgesForVertex3.end()) {
-					incidentEdges[oldQuads[i].vIndex[3]].push_back(edge4);
+					incidentEdges[oldQuads->at(i).vIndex[3]].push_back(edge4);
 				}
 				if (std::find(incidentEdgesForVertex0.begin(), incidentEdgesForVertex0.end(), edge4) == incidentEdgesForVertex0.end()) {
-					incidentEdges[oldQuads[i].vIndex[0]].push_back(edge4);
+					incidentEdges[oldQuads->at(i).vIndex[0]].push_back(edge4);
 				}
 				
 				// INCIDENT FACES FOR EDGES
@@ -301,8 +311,8 @@ Mesh* MeshSubdivider::subdivideCatmullClark(Mesh* mesh, int nSubdivisions) {
 
 			// 1. Compute the face points
 			std::vector<Vector3> facePoints;
-			for (int i = 0; i < oldQuads.size(); i++) {
-				Vector3 facePoint = calculateFacePoint({oldQuads[i].vIndex[0], oldQuads[i].vIndex[1], oldQuads[i].vIndex[2], oldQuads[i].vIndex[3] }, newMesh);
+			for (int i = 0; i < oldQuads->size(); i++) {
+				Vector3 facePoint = calculateFacePoint({oldQuads->at(i).vIndex[0], oldQuads->at(i).vIndex[1], oldQuads->at(i).vIndex[2], oldQuads->at(i).vIndex[3] }, newMesh);
 				facePoints.push_back(facePoint);
 			}
 
@@ -334,10 +344,10 @@ Mesh* MeshSubdivider::subdivideCatmullClark(Mesh* mesh, int nSubdivisions) {
 					- Connecting each new face point to the new edge points of the edges defining the old face.
 					- Connecting each new vertex point tot he new edge points of all old edges incident on the old vertex.
 			*/
-			for (int i = 0; i < oldVertices.size(); i++) {
+			for (int i = 0; i < oldVertices->size(); i++) {
 				Vector3 avg_face_points = Vector3(0.0f, 0.0f, 0.0f);
 				Vector3 avg_mid_edges = Vector3(0.0f, 0.0f, 0.0f);
-				Vector3 old_coords = oldVertices[i];
+				Vector3 old_coords = oldVertices->at(i);
 				std::vector<int> incidentFaceIndices = incidentFaces[i];
 				int n = incidentFaceIndices.size(); // valence of the vertex
 				std::vector<std::pair<int, int>> incidentEdgeIndices = incidentEdges[i];
@@ -359,28 +369,28 @@ Mesh* MeshSubdivider::subdivideCatmullClark(Mesh* mesh, int nSubdivisions) {
 
 				Vector3 newVertex = m1 * avg_face_points + m2 * avg_mid_edges + m3 * old_coords;
 
-				newMesh->vertices[i] = newVertex;
+				newMesh->vertices->at(i) = newVertex;
 			}
 
 			// Add all edge points to the new vertices, then store the indices of the edge points in a map for later use.
 			std::map<std::pair<int, int>, int> edgePointIndices;
 			for (int i = 0; i < edgePoints.size(); i++) {
-				newMesh->vertices.push_back(edgePoints[i]);
-				edgePointIndices[oldEdges[i]] = newMesh->vertices.size() - 1;
+				newMesh->vertices->push_back(edgePoints[i]);
+				edgePointIndices[oldEdges[i]] = newMesh->vertices->size() - 1;
 			}
 
 			// 4. Reconstruct the mesh with the new vertices and faces
 			std::vector<Quad> newQuads;
-			for (int i = 0; i < oldQuads.size(); i++)
+			for (int i = 0; i < oldQuads->size(); i++)
 			{
 				Vector3 facePoint = facePoints[i];
-				newMesh->vertices.push_back(facePoint);
-				int vFIndex = newMesh->vertices.size() - 1;
+				newMesh->vertices->push_back(facePoint);
+				int vFIndex = newMesh->vertices->size() - 1;
 				// Get the incident edge points
-				std::pair<int, int> edge1 = getEdgePair(oldQuads[i].vIndex[0], oldQuads[i].vIndex[1]);
-				std::pair<int, int> edge2 = getEdgePair(oldQuads[i].vIndex[1], oldQuads[i].vIndex[2]);
-				std::pair<int, int> edge3 = getEdgePair(oldQuads[i].vIndex[2], oldQuads[i].vIndex[3]);
-				std::pair<int, int> edge4 = getEdgePair(oldQuads[i].vIndex[3], oldQuads[i].vIndex[0]);
+				std::pair<int, int> edge1 = getEdgePair(oldQuads->at(i).vIndex[0], oldQuads->at(i).vIndex[1]);
+				std::pair<int, int> edge2 = getEdgePair(oldQuads->at(i).vIndex[1], oldQuads->at(i).vIndex[2]);
+				std::pair<int, int> edge3 = getEdgePair(oldQuads->at(i).vIndex[2], oldQuads->at(i).vIndex[3]);
+				std::pair<int, int> edge4 = getEdgePair(oldQuads->at(i).vIndex[3], oldQuads->at(i).vIndex[0]);
 
 				int vE01Index = edgePointIndices[edge1];
 				int vE12Index = edgePointIndices[edge2];
@@ -388,10 +398,10 @@ Mesh* MeshSubdivider::subdivideCatmullClark(Mesh* mesh, int nSubdivisions) {
 				int vE30Index = edgePointIndices[edge4];
 
 				// Get vertex indices
-				int v0Index = oldQuads[i].vIndex[0];
-				int v1Index = oldQuads[i].vIndex[1];
-				int v2Index = oldQuads[i].vIndex[2];
-				int v3Index = oldQuads[i].vIndex[3];
+				int v0Index = oldQuads->at(i).vIndex[0];
+				int v1Index = oldQuads->at(i).vIndex[1];
+				int v2Index = oldQuads->at(i).vIndex[2];
+				int v3Index = oldQuads->at(i).vIndex[3];
 
 				// Add the new faces
 				newQuads.push_back(Quad({ v0Index, vE01Index, vFIndex, vE30Index }));
@@ -400,7 +410,7 @@ Mesh* MeshSubdivider::subdivideCatmullClark(Mesh* mesh, int nSubdivisions) {
 				newQuads.push_back(Quad({ vE30Index, vFIndex, vE23Index, v3Index }));
 			}
 
-			newMesh->quads = newQuads;
+			newMesh->quads = &newQuads;
 			newMesh->UpdateMesh();
 
 			// Clear caches
@@ -410,8 +420,6 @@ Mesh* MeshSubdivider::subdivideCatmullClark(Mesh* mesh, int nSubdivisions) {
 			edgeMidpoints.clear();
 			facePoints.clear();
 			oldEdges.clear();
-			newQuads.clear();
-			
 			return newMesh;
 		}
 	}
@@ -420,7 +428,7 @@ Mesh* MeshSubdivider::subdivideCatmullClark(Mesh* mesh, int nSubdivisions) {
 Vector3 MeshSubdivider::calculateFacePoint(const std::vector<int>& faceVertexIndices,const Mesh* mesh) {
 	Vector3 facePoint = Vector3(0.0f, 0.0f, 0.0f);
 	for (int i = 0; i < faceVertexIndices.size(); i++) {
-		facePoint += mesh->vertices[faceVertexIndices[i]];
+		facePoint += mesh->vertices->at(faceVertexIndices[i]);
 	}
 	facePoint /= faceVertexIndices.size();
 	return facePoint;
