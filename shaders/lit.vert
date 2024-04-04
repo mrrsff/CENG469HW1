@@ -1,30 +1,30 @@
 #version 330 core
 
-struct Light
-{
-	vec3 position;
-	float quadratic;
-	vec3 ambient;
-	float linear;
-	vec3 diffuse;
-	float constant;
-	vec3 specular;
-	vec3 colorIntensity;
-};
+// struct Light
+// {
+// 	vec3 position;
+// 	float quadratic;
+// 	vec3 ambient;
+// 	float linear;
+// 	vec3 diffuse;
+// 	float constant;
+// 	vec3 specular;
+// 	vec3 colorIntensity;
+// };
 
-const int MAX_LIGHTS = 32;
-layout (std140) uniform Lights
-{
-	int numLights;
-	Light lights[MAX_LIGHTS];
-};
+// const int MAX_LIGHTS = 32;
+// layout (std140) uniform Lights
+// {
+// 	int numLights;
+// 	Light lights[MAX_LIGHTS];
+// };
 
 layout (std140) uniform CameraMatrices
 {
 	mat4 view;
 	mat4 projection;
 	vec3 eyePos;
-};
+}; 
 
 uniform mat4 model;
 uniform bool useTexture;
@@ -34,35 +34,38 @@ layout(location=0) in vec3 inVertex; // the position of the fragment in world sp
 layout(location=1) in vec3 inNormal; // normal in world space
 layout(location=2) in vec2 inTexCoords; // texture coordinates
 
-out vec4 color;
+out vec3 fragEyePos;
+out vec4 fragWorldPos;
+out vec3 fragWorldNor;
 
-vec3 calculateLightFactor(Light light, vec3 normal, vec3 eyePos, vec3 inVertex);
-vec3 calculateLightFactor(Light light, vec3 normal, vec3 eyePos, vec3 inVertex)
-{
-	// Calculate the light direction
-	vec3 lightDir = normalize(light.position - inVertex);
+// vec3 calculateLightFactor(Light light, vec3 normal, vec3 eyePos, Material material, vec3 inVertex);
+// vec3 calculateLightFactor(Light light, vec3 normal, vec3 eyePos, Material material, vec3 inVertex)
+// {
+// 	// Calculate the light direction
+// 	vec3 lightDir = normalize(light.position - inVertex);
 
-	// Calculate the attenuation
-	float distance = length(light.position - inVertex);
-	float attenuationDivision = light.constant + light.linear * distance + light.quadratic * distance * distance;
-	float attenuation = 1.0 / attenuationDivision;
+// 	// Calculate the ambient component
+// 	vec3 ambient = light.ambient * material.ambient;
 
-	// Calculate the diffuse component
-	float diff = max(dot(normal, lightDir), 0.0);
-	vec3 diffuse = light.diffuse * diff;
+// 	// Calculate the diffuse component
+// 	float diff = max(dot(normal, lightDir), 0.0);
+// 	vec3 diffuse = light.diffuse * (diff * material.diffuse);
 
-	// Calculate the specular component
-	vec3 viewDir = normalize(eyePos - inVertex);
-	vec3 reflectDir = reflect(-lightDir, normal);
-	float spec = pow(max(dot(viewDir, reflectDir), 0.0), 8.0);
-	vec3 specular = light.specular * spec;
+// 	// Calculate the specular component
+// 	vec3 viewDir = normalize(eyePos - inVertex);
+// 	vec3 reflectDir = reflect(-lightDir, normal);
+// 	float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+// 	vec3 specular = light.specular * (spec * material.specular);
 
-	// Calculate the light
-	vec3 lightFactor = attenuation * (diffuse + specular);
-	lightFactor *= light.colorIntensity;
+// 	// Calculate the attenuation
+// 	float distance = length(light.position - inVertex);
+// 	float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
 
-	return lightFactor;
-}
+// 	// Calculate the final light factor
+// 	vec3 lightFactor = (ambient + diffuse + specular) * attenuation * light.colorIntensity;
+
+// 	return lightFactor;
+// }
 
 void main(void)
 {
@@ -70,19 +73,19 @@ void main(void)
 	// color = vec4(normalize(inNormal), 1.0);
 
 	// White color
-	color = vec4(1.0, 1.0, 1.0, 1.0);
+	// color = vec4(1.0, 1.0, 1.0, 1.0);
 
-	// Calculate the normal matrix
-	mat3 normalMatrix = transpose(inverse(mat3(model)));
+	// // Calculate the normal matrix
+	// mat3 normalMatrix = transpose(inverse(mat3(model)));
 
-	// Calculate the normal in eye space
-	vec3 normal = normalize(normalMatrix * inNormal);
+	// // Calculate the normal in eye space
+	// vec3 normal = normalize(normalMatrix * inNormal);
 
-	// Calculate the light
+	// // Calculate the light
 	// vec3 light = vec3(0.0);
 	// for (int i = 0; i < numLights; i++)
 	// {
-	// 	light += calculateLightFactor(lights[i], normal, eyePos, inVertex);
+	// 	light += calculateLightFactor(lights[i], normal, eyePos, material, inVertex);
 	// }
 
 	// // Calculate the final color
@@ -95,6 +98,11 @@ void main(void)
 	// 	color *= vec4(light, 1.0);
 	// }
 
-	// Calculate the final position
+	// Pass the eye position
+	fragEyePos = eyePos;
+
+	fragWorldPos = model * vec4(inVertex, 1.0);
+	fragWorldNor = inverse(transpose(mat3x3(model))) * inNormal;
+
 	gl_Position = projection * view * model * vec4(inVertex, 1.0);
 }

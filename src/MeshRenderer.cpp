@@ -16,8 +16,13 @@ void MeshRenderer::SetCamera(Camera* camera) {
 	setupCameraUBO();
 }
 
-void MeshRenderer::Draw(GameObject& gameObject) {
-	ShaderProgram* shader = gameObject.shader;
+void MeshRenderer::Draw(GameObject* gameObject) {
+	ShaderProgram* shader = gameObject->shader;
+	if (shader == nullptr)
+	{
+		std::cerr << "No shader attached to the game object" << std::endl;
+		return;
+	}
 	shader->use();
 
 	// Bind the lights UBO
@@ -31,12 +36,12 @@ void MeshRenderer::Draw(GameObject& gameObject) {
 	assert(glGetError() == GL_NO_ERROR);
 	
 	// Set the model matrix
-	shader->setMat4("model", gameObject.getModelingMatrix());
+	shader->setMat4("model", gameObject->getModelingMatrix());
 
 	// Set if texture is enabled
-	shader->setBool("useTexture", gameObject.mesh->textures.size() > 0);
+	shader->setBool("useTexture", gameObject->mesh->textures.size() > 0);
 
-	gameObject.mesh->Draw();
+	gameObject->mesh->Draw();
 
 	shader->unuse();
 }
@@ -77,9 +82,11 @@ void MeshRenderer::setupLightsUBO() {
 	
 	glGenBuffers(1, &lightUBO);
 	glBindBuffer(GL_UNIFORM_BUFFER, lightUBO);
-	glBufferData(GL_UNIFORM_BUFFER, sizeof(lightsData), &lightsData, GL_STATIC_DRAW);
+	glBufferData(GL_UNIFORM_BUFFER, sizeof(__lights), &lightsData, GL_STATIC_DRAW);
 	glBindBufferBase(GL_UNIFORM_BUFFER, 0, lightUBO);
-	lightsDataPtr = glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(lightsData), GL_MAP_READ_BIT);
+
+	// lightsDataPtr = glMapBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(__lights), GL_MAP_READ_BIT);
+	// glFlushMappedBufferRange(GL_UNIFORM_BUFFER, 0, sizeof(__lights));
 	
 	glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	assert(glGetError() == GL_NO_ERROR);
@@ -94,8 +101,6 @@ void MeshRenderer::setupCameraUBO() {
 			vec3 eyePos;
 		};
 	*/
-
-	int size = sizeof(cameraData);
 	glGenBuffers(1, &cameraUBO);
 	UpdateCameraUBO();
 }
@@ -106,12 +111,14 @@ void MeshRenderer::UpdateCameraUBO() {
 	cameraData.padding = 0.0f;
 	cameraData.eyePos = camera->getPosition();
 
-	int size = sizeof(cameraData);
+	int size = sizeof(__camera);
 	glBindBuffer(GL_UNIFORM_BUFFER, cameraUBO); // Bind buffer
 	glBufferData(GL_UNIFORM_BUFFER, size, &cameraData, GL_STATIC_DRAW); // Set buffer data
 	glBindBufferBase(GL_UNIFORM_BUFFER, 1, cameraUBO); // Bind buffer to binding point 1
-	cameraDataPtr = glMapBufferRange(GL_UNIFORM_BUFFER, 0, size, GL_MAP_READ_BIT);
+
+	// cameraDataPtr = glMapBufferRange(GL_UNIFORM_BUFFER, 0, size, GL_MAP_READ_BIT);
 	// glFlushMappedBufferRange(GL_UNIFORM_BUFFER, 0, size); // Flush buffer
+
 	glBindBuffer(GL_UNIFORM_BUFFER, 0); // Unbind buffer
 	assert(glGetError() == GL_NO_ERROR);
 }

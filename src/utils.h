@@ -14,10 +14,7 @@
 #include <cassert>
 #include <algorithm>
 
-Mesh* ParseObjFile(const char* path, bool withNormals = false);
-ShaderProgram* CreateShaderProgram(const char* vertexShaderPath, const char* fragmentShaderPath);
-GameObject CreateGameObject(std::string name, std::string objPath, std::string vertexShaderPath, std::string fragmentShaderPath);
-GameObject CreateGameObject(std::string name, Mesh* mesh, std::string vertexShaderPath, std::string fragmentShaderPath);
+Mesh* ParseObjFile(const char* path, bool useTriangles, bool withNormals = false);
 void CheckGLError(const char* file, int line);
 Quaternion utilsLookAt(Vector3 position, Vector3 target, Vector3 up);
 Quaternion utilsFromAxisAngle(Vector3 axis, double angle);

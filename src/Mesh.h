@@ -11,6 +11,8 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h> // The GLFW header
 
+#define BUFFER_OFFSET(i) ((char *)NULL + (i))
+
 struct Vertex
 {
 	Vertex(GLfloat inX, GLfloat inY, GLfloat inZ) : x(inX), y(inY), z(inZ) { }
@@ -52,6 +54,17 @@ struct Triangle
 		tIndex[0] = v[0];
 		tIndex[1] = v[1];
 		tIndex[2] = v[2];
+		nIndex[0] = v[0];
+		nIndex[1] = v[1];
+		nIndex[2] = v[2];
+	}
+	Triangle(std::vector<int> v, std::vector<int> t) {
+		vIndex[0] = v[0];
+		vIndex[1] = v[1];
+		vIndex[2] = v[2];
+		tIndex[0] = t[0];
+		tIndex[1] = t[1];
+		tIndex[2] = t[2];
 		nIndex[0] = v[0];
 		nIndex[1] = v[1];
 		nIndex[2] = v[2];
@@ -102,43 +115,64 @@ struct Quad
 		nIndex[2] = v[2];
 		nIndex[3] = v[3];
 	}
+	Quad(std::vector<int> v, std::vector<int> t) {
+		vIndex[0] = v[0];
+		vIndex[1] = v[1];
+		vIndex[2] = v[2];
+		vIndex[3] = v[3];
+		tIndex[0] = t[0];
+		tIndex[1] = t[1];
+		tIndex[2] = t[2];
+		tIndex[3] = t[3];
+		nIndex[0] = v[0];
+		nIndex[1] = v[1];
+		nIndex[2] = v[2];
+		nIndex[3] = v[3];
+	}
 	GLuint vIndex[4], tIndex[4], nIndex[4];
 };
 
 class Mesh {
 public:
-    std::vector<Vector3> vertices;
+
+	std::vector<Vector3> vertices;
 	std::vector<Texture> textures;
 	std::vector<Vector3> normals;
-	std::vector<Triangle> faces;
+	std::vector<Triangle> triangles;
 	std::vector<Quad> quads;
+	bool quadMesh = false;
+
+	std::vector<Vector3> GetVertices() { return vertices; }
+	std::vector<Texture> GetTextures() { return textures; }
+	std::vector<Vector3> GetNormals() { return normals; }
+	std::vector<Triangle> GetTriangles() { return triangles; }
+	std::vector<Quad> GetQuads() { return quads; }
 
 	Mesh();
 	Mesh(std::vector<Vector3> vertices, std::vector<Vector3> normals, std::vector<Texture> textures, std::vector<Quad> quads);
     Mesh(std::vector<Vector3> vertices, std::vector<Vector3> normals, std::vector<Texture> textures, std::vector<Triangle> faces);
-	Mesh(std::vector<Vector3> vertices, std::vector<Texture> textures, std::vector<Triangle> faces);
-	Mesh(std::vector<Vector3> vertices, std::vector<Triangle> faces);
 	Mesh(Mesh* mesh);
 
-	void UpdateMesh(std::vector<Vector3> vertices, std::vector<Vector3> normals, std::vector<Texture> textures, std::vector<Triangle> faces);
 	void UpdateMesh();
-
     void Draw();
 
 	friend std::ostream& operator<<(std::ostream& os, const Mesh& mesh) {
 		os << "Mesh: " << std::endl;
 		os << "Vertices count: " << mesh.vertices.size() << std::endl;
-		os << "Faces count: " << mesh.faces.size() << std::endl;
+		os << "Faces count: " << mesh.triangles.size() << std::endl;
 		return os;
 	}
 
 	void DebugMeshInfo();
 
 private:
-    unsigned int VAO, VBO, EBO;
-    void setupMesh();
+	int indexCount;
+	
+	bool m_dirty = false;
 
-	void calculateNormals();
+    unsigned int VAO, VBO, EBO;
+
+    void setupMesh();
 };
 
 #endif

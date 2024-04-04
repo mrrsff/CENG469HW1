@@ -15,6 +15,8 @@
 #include <map>
 #include <math.h> 
 #include <filesystem>
+#include <thread>
+#include <mutex>
 
 #include <GL/glew.h>
 // #include <GL/gl.h>   // The GL Header File
@@ -31,6 +33,7 @@
 #include "Light.h"
 #include "Camera.h"
 #include "Mesh.h"
+#include "Material.h"
 #include "ShaderProgram.h"
 #include "utils.h"
 #include "constTypes.h"
@@ -42,8 +45,9 @@
 
 #pragma region String Literals
 
-std::string vertexShaderSource = "/shaders/lit.vert";
-std::string fragmentShaderSource = "/shaders/lit.frag";
+std::string vertexShaderSource = "./shaders/lit.vert";
+std::string fragmentShaderSource = "./shaders/lit.frag";
+std::string geometryShaderSource = "./shaders/lit.geom";
 std::string objPath = "/objs/";
 
 #pragma endregion
@@ -56,27 +60,38 @@ enum DrawMode
 	WIREFRAME = 2
 };
 DrawMode drawMode = SOLID;
+
 // Window dimensions
 GLuint WIDTH = 1280, HEIGHT = 720;
-Vector3 backgroundColor = Vector3(0.1f, 0.1f, 0.2f);
-// Camera
-Camera* mainCamera;
-
-// Lights
-std::vector<Light> lights;
-
-// Game objects (all necessary components for rendering is in here)
-std::vector<GameObject> gameObjects;
+Vector3 backgroundColor = Vector3(0.2f, 0.2f, 0.4f);
+std::string windowTitle = "CENG469 HW1 OPENGL";
 
 // Window
 GLFWwindow* window;
 
+// Scene components
+Camera* mainCamera;
+std::vector<Light> lights;
 MeshRenderer* meshRenderer;
 
-// Inputs
+// Game objects (all necessary components for rendering is in here)
+std::vector<GameObject*> gameObjects;
+int subdivisionLevel = 0;
+std::map<GameObject*, std::vector<Mesh*>> subdividedMeshes;
+std::vector<Material> materials;
+bool stopGameObjects = false;
+bool testMode = false;
+Vector2 offsets = Vector2(-0.5f, -0.6f);
+Vector3 objScale = Vector3(1.0f, 1.0f, 1.0f);
+
+Mesh* triangleCubeMesh;
+Mesh* quadCubeMesh;
+int subdivLevel = 2;
+
 Vector2 cameraMovement = Vector2(0.0f, 0.0f);
 
-std::string windowTitle = "CENG469 HW1 OPENGL";
+std::mutex gameObjectsMutex;
+std::mutex subdividedMeshesMutex;
 
 #pragma endregion
 
@@ -89,7 +104,6 @@ void init();
 void drawObjects();
 void updateObjects();
 void nextDrawMode();
-
 #pragma endregion
 
 void init()
@@ -102,31 +116,63 @@ void init()
 	std::string cwd = std::filesystem::current_path().string();
 	objPath = cwd + objPath;
 
-	Vector3 objScale = Vector3(1.0f, 1.0f, 1.0f);
-
-	GameObject gameObject = CreateGameObject("cube", objPath + "cube.obj", cwd + vertexShaderSource, cwd + fragmentShaderSource);
-	gameObject.SetPosition(Vector3(0.0f, 0.0f, 0.0f));
-	gameObject.SetScale(objScale);
-	gameObject.SetRotation(Quaternion(0.0f, 0.0f, 0.0f, 1.0f));
-	gameObjects.push_back(gameObject);
-
-	// Add subdivided cubes to the scene, move them side by side.
-	for (int i = 0; i < 1; i++)
+	int objCount = 6;
+	triangleCubeMesh = ParseObjFile((objPath + "cube.obj").c_str(), true, true);
+	quadCubeMesh = ParseObjFile((objPath + "cube.obj").c_str(), false, true);
+	
+	// Create materials for each object (each object must have a different color)
+	for (int i = 0; i < objCount; i++)
 	{
-		std::cout << "Subdividing cube with Catmull-Clark subdivision level: " << i << std::endl;
-		Mesh* mesh = MeshSubdivider::subdivideCatmullClark(gameObject.mesh, i+1);
-		GameObject gameObject = CreateGameObject("cube"+i, mesh, cwd + vertexShaderSource, cwd + fragmentShaderSource);
-		gameObject.SetPosition(Vector3(0.0f, 0.0f, 0.0f));
-		gameObject.SetScale(objScale);
-		gameObject.SetRotation(Quaternion(0.0f, 0.0f, 0.0f, 1.0f));
-		gameObject.position += Vector3(5.0f * (i + 1), 0.0f, 0.0f);
+		double red = (double)(i % 3);
+		double green = (double)((i + 1) % 3);
+		double blue = (double)((i + 2) % 3);
+		double randomOffset = (double)(rand() % 100) / 100.0f - 0.5f;
+		Material material = Material();
+
+		material.ambient = Vector3(red + randomOffset, green + randomOffset, blue + randomOffset);
+		material.diffuse = Vector3(red + randomOffset, green + randomOffset, blue + randomOffset);
+
+		material.specular = Vector3(1.0f, 1.0f, 1.0f);
+		material.shininess = 256.0f;
+		materials.push_back(material);		
+	}
+
+	// Create gameobjects and cache subdivided meshes
+	
+	// Create gameobjects and cache subdivided meshes
+	for (int i = 0; i < objCount; i++)
+	{
+		ShaderProgram* shader = new ShaderProgram(vertexShaderSource.c_str(), fragmentShaderSource.c_str());
+		if (shader == nullptr)
+		{
+			std::cerr << "Failed to create shader program" << std::endl;
+			exit(-1);
+		}
+		GameObject* gameObject = new GameObject(shader);
+		gameObject->SetShader(shader);
+		gameObject->name = "Cube" + std::to_string(i);
+		Mesh* mesh = i % 2 == 0 ? triangleCubeMesh : quadCubeMesh;
+		gameObject->SetMesh(mesh);
+		gameObject->SetScale(objScale);
+		gameObject->SetMaterial(&materials[i]);
+		gameObject->SetPosition(Vector3(5.0f * i, 0.0f, 0.0f));
 		gameObjects.push_back(gameObject);
+
+		// TODO: MULTITHREADING
+
+		// Cache subdivided meshes
+		subdividedMeshes[gameObject].push_back(mesh);
+		for (int j = 1; j < subdivLevel; j++)
+		{
+			Mesh* subdividedMesh = MeshSubdivider::subdivideCatmullClark(mesh, j);
+			subdividedMeshes[gameObject].push_back(subdividedMesh);
+		}
 	}
 
 	Vector3 avgObjectPosition = Vector3(0.0f, 0.0f, 0.0f);
-	for (GameObject obj: gameObjects)
+	for (GameObject* obj: gameObjects)
 	{
-		avgObjectPosition += obj.position;
+		avgObjectPosition += obj->position;
 	}
 	avgObjectPosition /= gameObjects.size();
 
@@ -145,34 +191,18 @@ void init()
 	// Turn camera to look at the cube
 	mainCamera->setRotation(utilsLookAt(mainCamera->getPosition(), avgObjectPosition, mainCamera->getUp()));
 
-	// Create 4 light for each game object, front, back, left, right
-	float delta = 8.0f;
-	Vector3 colorIntensity = Vector3(1.0f, 0.2f, 0.3f) * 1.0f;
-	for (GameObject obj: gameObjects)
-	{
-		for (int i = 0; i < 2; i++)
-		{
-			Light light;
-			light.position = obj.position;
-			light.ambient = Vector3(1,1,1);
-			light.diffuse = Vector3(1,1,1);
-			light.specular = Vector3(1.0f, 1.0f, 1.0f);
-			light.constant = 1.0f;
-			light.linear = 0.05f;
-			light.quadratic = 0.016f;
-			light.colorIntensity = colorIntensity;
-			light.position += Vector3(0.0f, -0, 0.0f);
-			if (i == 0)
-			{
-				light.position += Vector3(delta, 0.0f, -delta);
-			}
-			else if (i == 1)
-			{
-				light.position += Vector3(-delta, 0.0f, delta);
-			}
-			lights.push_back(light);
-		}
-	}
+	// Create a very powerful light on top of the camera
+	Light light;
+	light.position = mainCamera->getPosition() + Vector3(0.0f, 5.0f, 0.0f);
+	light.ambient = Vector3(1,1,1);
+	light.diffuse = Vector3(1,1,1);
+	light.specular = Vector3(1.0f, 1.0f, 1.0f);
+	light.constant = 0.8f;
+	light.linear = 0;
+	light.quadratic = 0;
+	light.colorIntensity = Vector3(1.0f, 1.0f, 1.0f);
+	light.colorIntensity *= 0.2f;
+	lights.push_back(light);
 
 	// Create mesh renderer
 	meshRenderer = new MeshRenderer();
@@ -181,15 +211,21 @@ void init()
 }
 void updateObjects()
 {
+	if(stopGameObjects) return;
+
 	// handle camera movement
-	if(cameraMovement.x != 0.0f || cameraMovement.y != 0.0f)
+	if(testMode && (cameraMovement.x != 0.0f || cameraMovement.y != 0.0f))
 	{
 		Vector3 cameraForward = mainCamera->getForward();
 		Vector3 cameraRight = mainCamera->getRight();
 		Vector3 cameraUp = mainCamera->getUp();
 		Vector3 cameraPosition = mainCamera->getPosition();
 		float cameraSpeed = 0.1f;
-		cameraPosition += cameraForward * cameraMovement.y * cameraSpeed;
+		if(mainCamera->getType() == ORTHOGRAPHIC)
+		{
+			cameraPosition += cameraUp * cameraMovement.y * cameraSpeed;
+		}
+		else cameraPosition += cameraForward * cameraMovement.y * cameraSpeed;
 		cameraPosition += cameraRight * cameraMovement.x * cameraSpeed;
 		mainCamera->setPosition(cameraPosition);
 
@@ -200,38 +236,73 @@ void updateObjects()
 		If i%3==0, rotate around y-axis
 		If i%3==1, move up and down (sin wave)
 		If i%3==2, scale up and down (sin wave)
-	*/ 
-	// float sinValue = sin(glfwGetTime());
-	// float skewedSinValue = sin(glfwGetTime() * 0.5f);
+	*/
+	float sinValue = sin(glfwGetTime());
+	float skewedSinValue = sin(glfwGetTime() * 0.5f);
 
-	// for (int i = 0; i < gameObjects.size(); i++)
-	// {
-	// 	GameObject gameObject = gameObjects[i];
-	// 	if(i % 3 == 0)
-	// 	{
-	// 		Quaternion rotation = gameObject.GetRotation();
-	// 		Quaternion rotationDelta = utilsFromAxisAngle(Vector3(0.0f, 1.0f, 0.0f), 0.5f);
-	// 		rotation = rotation * rotationDelta;
-	// 		gameObject.SetRotation(rotation);
-	// 	}
-	// 	else if(i % 3 == 1)
-	// 	{
-	// 		Vector3 position = gameObject.GetPosition();
-	// 		position.y = sinValue * 2.0f;
-	// 		gameObject.SetPosition(position);
-	// 	}
-	// 	else if(i % 3 == 2)
-	// 	{
-	// 		Vector3 scale = gameObject.GetScale();
-	// 		scale.x = 1.0f + skewedSinValue * 0.5f;
-	// 		scale.y = 1.0f + skewedSinValue * 0.5f;
-	// 		scale.z = 1.0f + skewedSinValue * 0.5f;
-	// 		gameObject.SetScale(scale);
-	// 	}
-	// 	// Update game object
-	// 	gameObjects[i] = gameObject;
-	// }
+	for (int i = 0; i < gameObjects.size(); i++)
+	{
+		GameObject* gameObject = gameObjects[i];
+		if(i % 4 == 0)
+		{
+			Quaternion rotation = gameObject->GetRotation();
+			Quaternion rotationDelta = utilsFromAxisAngle(Vector3(0.0f, 1.0f, 0.0f), 0.5f + i * 0.1f);
+			rotation = rotation * rotationDelta;
+			gameObject->SetRotation(rotation);
+		}
+		else if(i % 4 == 1)
+		{
+			Vector3 position = gameObject->GetPosition();
+			position.y = sin(glfwGetTime() + i * 2.0f) * 2.0f;
+			gameObject->SetPosition(position);
+		}
+		else if(i % 4 == 2)
+		{
+			Vector3 scale = gameObject->GetScale();
+			scale.x = 1.0f + skewedSinValue * 0.5f;
+			scale.y = 1.0f + skewedSinValue * 0.5f;
+			scale.z = 1.0f + skewedSinValue * 0.5f;
+			gameObject->SetScale(scale);
+		}
+		else if(i % 4 == 3)
+		{
+			// Rotate around objects
+			Vector3 position = gameObject->GetPosition();
+			Vector3 center = Vector3(0.0f, 0.0f, 0.0f);
+			for (int i = 0; i < gameObjects.size(); i++)
+			{
+				if (gameObjects[i] == gameObject) continue;
+				center += gameObjects[i]->GetPosition();
+			}
+			center /= gameObjects.size()-1;
+			float radius = gameObjects.size() * 3.0f;
+			float angle = glfwGetTime() * 0.5f;
+			position.x = center.x + cos(angle) * radius;
+			position.z = center.z + sin(angle) * radius;
+			gameObject->SetPosition(position);
+		}
+	}
 
+}
+void increaseSubdivisionLevel()
+{
+	// Increase subdivision level of rendered mesh
+	subdivisionLevel = subdivisionLevel < subdividedMeshes[gameObjects[0]].size() - 1 ? subdivisionLevel + 1 : subdivisionLevel;
+	for (GameObject* obj: gameObjects)
+	{
+		Mesh* mesh = subdividedMeshes[obj][subdivisionLevel];
+		obj->SetMesh(mesh);
+	}
+}
+void decreaseSubdivisionLevel()
+{
+	// Decrease subdivision level of the mesh
+	subdivisionLevel = subdivisionLevel > 0 ? subdivisionLevel - 1 : 0;
+	for (GameObject* obj: gameObjects)
+	{
+		Mesh* mesh = subdividedMeshes[obj][subdivisionLevel];
+		obj->SetMesh(mesh);
+	}
 }
 void drawObjects()
 {
@@ -245,7 +316,7 @@ void drawObjects()
 		// Draw game objects
 		for (int i = 0; i < gameObjects.size(); i++)
 		{
-			GameObject gameObject = gameObjects[i];
+			GameObject* gameObject = gameObjects[i];
 			// Draw game object
 			meshRenderer->Draw(gameObject);
 			assert(glGetError() == GL_NO_ERROR);
@@ -254,11 +325,11 @@ void drawObjects()
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		glDisable(GL_CULL_FACE);
 		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-		glPolygonOffset(-0.5f, 0);
+		glPolygonOffset(offsets.x, offsets.y);
 	}
 	for (int i = 0; i < gameObjects.size(); i++)
 	{
-		GameObject gameObject = gameObjects[i];
+		GameObject* gameObject = gameObjects[i];
 		// Draw game object
 		meshRenderer->Draw(gameObject);
 		assert(glGetError() == GL_NO_ERROR);
@@ -299,10 +370,32 @@ void inputCallback(GLFWwindow* window, int key, int scancode, int action, int mo
 		// if (key == GLFW_KEY_O) backgroundColor.z += 0.1f;
 		// if (key == GLFW_KEY_L) backgroundColor.z -= 0.1f;
 
+		// Stop game object movement
+		if (key == GLFW_KEY_S) stopGameObjects = !stopGameObjects;
+
 		// Open and close wireframe mode (no culling)
-		if (key == GLFW_KEY_M)
+		if (key == GLFW_KEY_M) nextDrawMode();
+
+		// Increase subdivision level
+		if (key == GLFW_KEY_T) increaseSubdivisionLevel();
+
+		// Decrease subdivision level
+		if (key == GLFW_KEY_E) decreaseSubdivisionLevel();
+
+		// Change perspective
+		if (key == GLFW_KEY_P)
 		{
-			nextDrawMode();
+			if (mainCamera->getType() == ORTHOGRAPHIC)
+			{
+				mainCamera->setType(PERSPECTIVE);
+				std::cout << "Camera Type: Perspective" << std::endl;
+			}
+			else
+			{
+				mainCamera->setType(ORTHOGRAPHIC);
+				std::cout << "Camera Type: Orthographic" << std::endl;
+			}
+			meshRenderer->UpdateCameraUBO();
 		}
 	}
 	else if(action == GLFW_RELEASE)
@@ -351,6 +444,7 @@ void nextDrawMode()
 
 void mousePosInputCallback(GLFWwindow* window, double xpos, double ypos)
 {
+	return;
 	// Move camera with mouse
 	static bool rotateCamera = false;
 	static double lastX = 0;
@@ -392,7 +486,8 @@ void mainLoop(GLFWwindow* window)
 	while (!glfwWindowShouldClose(window))
 	{
 		// Clear the colorbuffer
-		glClearColor(backgroundColor.x, backgroundColor.y, backgroundColor.z, 1.0f);
+		// glClearColor(backgroundColor.x, backgroundColor.y, backgroundColor.z, 1.0f);
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		// Movement

@@ -40,13 +40,20 @@ struct __lights {
         }
     }
 };
-
 struct __camera {
 	Matrix4 view;
 	Matrix4 projection;
 	// add 4 bytes padding
 	float padding;
 	Vector3 eyePos;
+};
+struct __material{
+	Vector3 ambient;
+	float shininess;
+	Vector3 diffuse;
+	float padding;
+	Vector3 specular;
+	float padding2;
 };
 
 class MeshRenderer {
@@ -56,7 +63,7 @@ public:
 
 	void SetLights(const std::vector<Light>& lights);
 	void SetCamera(Camera* camera);
-	void Draw(GameObject& gameObject);
+	void Draw(GameObject* gameObject);
 
 	void DebugLightUBO();
 	void DebugCameraUBO();

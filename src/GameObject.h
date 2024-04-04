@@ -6,6 +6,7 @@
 #include "Mesh.h"
 #include "ShaderProgram.h"
 #include "printExtensions.h"
+#include "Material.h"
 #include <iostream>
 #include <string>
 
@@ -19,9 +20,9 @@ public:
 	Quaternion rotation;
 	ShaderProgram* shader;
     Mesh* mesh;
+	Material* material;
 
-	GameObject();
-    GameObject(std::string name, Mesh* mesh, ShaderProgram* shader);
+	GameObject(ShaderProgram* program);
 
 	Matrix4 getModelingMatrix();
 	
@@ -30,6 +31,7 @@ public:
 	void SetPosition(Vector3 position);
 	void SetScale(Vector3 scale);
 	void SetRotation(Quaternion rotation);
+	void SetMaterial(Material* material);
 
 	Quaternion GetRotation();
 	Vector3 GetPosition();

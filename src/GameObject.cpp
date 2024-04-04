@@ -1,19 +1,9 @@
 #include "GameObject.h"
 
-GameObject::GameObject() {
+GameObject::GameObject(ShaderProgram* program) {
 	name = "GameObject";
+	shader = program;
 	mesh = nullptr;
-	shader = nullptr;
-	position = Vector3(0, 0, 0);
-	scale = Vector3(1, 1, 1);
-	rotation = Quaternion(1, 0, 0, 0);
-	updateModelingMatrix();
-}
-
-GameObject::GameObject(std::string name, Mesh* mesh, ShaderProgram* shader) {
-	this->name = name;
-	this->mesh = mesh;
-	this->shader = shader;
 	position = Vector3(0, 0, 0);
 	scale = Vector3(1, 1, 1);
 	rotation = Quaternion(1, 0, 0, 0);
@@ -25,6 +15,20 @@ Matrix4 GameObject::getModelingMatrix() {
 		updateModelingMatrix();
 	}
 	return modelingMatrix;
+}
+
+void GameObject::SetMaterial(Material* material) {
+	this->material = material;
+
+	// Set the material
+	if (material != nullptr && shader != nullptr) {
+		shader->use();
+		shader->setVec3("material.ambient", material->ambient);
+		shader->setVec3("material.diffuse", material->diffuse);
+		shader->setVec3("material.specular", material->specular);
+		shader->setFloat("material.shininess", material->shininess);
+		shader->unuse();
+	}
 }
 
 void GameObject::SetMesh(Mesh* mesh) {

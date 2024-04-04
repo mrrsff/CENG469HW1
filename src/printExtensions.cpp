@@ -29,3 +29,13 @@ void printQuaternion(Quaternion quaternion)
 {
 	std::cout << std::fixed << std::setprecision(2) << quaternion.x << ", " << quaternion.y << ", " << quaternion.z << ", " << quaternion.w << std::endl;
 }
+
+void printTriangle(Triangle triangle)
+{
+	std::cout << "Triangle: " << triangle.vIndex[0] << ", " << triangle.vIndex[1] << ", " << triangle.vIndex[2] << std::endl;
+}
+
+void printQuad(Quad quad)
+{
+	std::cout << "Quad: " << quad.vIndex[0] << ", " << quad.vIndex[1] << ", " << quad.vIndex[2] << ", " << quad.vIndex[3] << std::endl;
+}

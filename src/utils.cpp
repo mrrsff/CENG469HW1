@@ -1,11 +1,12 @@
 #include "utils.h"
 
-Mesh* ParseObjFile(const char* path, bool withNormals)
+Mesh* ParseObjFile(const char* path, bool useTriangles, bool withNormals)
 {
     std::vector<Vector3> vertices;
     std::vector<Texture> textures;
     std::vector<Vector3> normals;
-    std::vector<Triangle> faces;
+    std::vector<Triangle> triangles;
+    std::vector<Quad> quads;
     std::fstream myfile;
 
     myfile.open(path, std::ios::in);
@@ -57,42 +58,26 @@ Mesh* ParseObjFile(const char* path, bool withNormals)
                 tIndices.push_back(t-1);
                 nIndices.push_back(n-1);
             }
+            if(!withNormals)
+            {
+                nIndices = {0, 0, 0}; // Default normal
+            }
 
             // Assuming faces are quads and need to be broken down into two triangles.
-            if (vIndices.size() == 4)
+            if (useTriangles)
             {
-                // This is for counter-clockwise winding order.
-                // First triangle
-                faces.emplace_back(Triangle({vIndices[0], vIndices[1], vIndices[2]},
-                                         {tIndices[0], tIndices[1], tIndices[2]},
-                                         {nIndices[0], nIndices[1], nIndices[2]}));
-
-                // Second triangle
-                faces.emplace_back(Triangle({vIndices[0], vIndices[2], vIndices[3]},
-                                         {tIndices[0], tIndices[2], tIndices[3]},
-                                         {nIndices[0], nIndices[2], nIndices[3]}));
-
-                // This is for clockwise winding order.
-                // // First triangle
-                // faces.emplace_back(Face({vIndices[0], vIndices[2], vIndices[1]},
-                //                          {tIndices[0], tIndices[2], tIndices[1]},
-                //                          {nIndices[0], nIndices[2], nIndices[1]}));
-
-                // // Second triangle
-                // faces.emplace_back(Face({vIndices[0], vIndices[3], vIndices[2]},
-                //                          {tIndices[0], tIndices[3], tIndices[2]},
-                //                          {nIndices[0], nIndices[3], nIndices[2]}));
-
-            }
-            else if (vIndices.size() == 3)
-            {
-                // Directly handle triangles without modification.
-                faces.emplace_back(Triangle(vIndices, tIndices, nIndices));
+                int v1[3] = {vIndices[0], vIndices[1], vIndices[2]};
+                int v2[3] = {vIndices[0], vIndices[2], vIndices[3]};
+                int t1[3] = {tIndices[0], tIndices[1], tIndices[2]};
+                int t2[3] = {tIndices[0], tIndices[2], tIndices[3]};
+                int n1[3] = {nIndices[0], nIndices[1], nIndices[2]};
+                int n2[3] = {nIndices[0], nIndices[2], nIndices[3]};
+                triangles.emplace_back(Triangle(v1, t1, n1));
+                triangles.emplace_back(Triangle(v2, t2, n2));
             }
             else
             {
-                // Handle other cases or report an error.
-                std::cerr << "Unsupported face vertex count: " << vIndices.size() << "\n";
+                quads.emplace_back(Quad(vIndices, tIndices));
             }
         }
     }
@@ -100,43 +85,21 @@ Mesh* ParseObjFile(const char* path, bool withNormals)
     myfile.close();
 
     // Basic validation
-    if (vertices.empty() || faces.empty())
+    if (vertices.empty() || (triangles.empty() && quads.empty()))
     {
         std::cerr << "Invalid or empty OBJ file\n";
-		assert(false);
 		return nullptr;
     }
 
     // Successful parsing, create and return the mesh
-    if (withNormals)
+    if (useTriangles)
     {
-        return new Mesh(vertices, normals, textures, faces);
+        return new Mesh(vertices, normals, textures, triangles);
     }
-    else 
+    else
     {
-        return new Mesh(vertices, textures, faces);
+        return new Mesh(vertices, normals, textures, quads);
     }
-}
-
-ShaderProgram* CreateShaderProgram(const char* vertexShaderPath, const char* fragmentShaderPath)
-{
-	ShaderProgram* shader = new ShaderProgram(vertexShaderPath, fragmentShaderPath);
-	return shader;
-}
-
-GameObject CreateGameObject(std::string name, std::string objPath, std::string vertexShaderPath, std::string fragmentShaderPath)
-{
-	Mesh* mesh = ParseObjFile(objPath.c_str(), true);
-	ShaderProgram* shader = CreateShaderProgram(vertexShaderPath.c_str(), fragmentShaderPath.c_str());
-	GameObject gameObject = GameObject(name,mesh, shader);
-	return gameObject;
-}
-
-GameObject CreateGameObject(std::string name, Mesh* mesh, std::string vertexShaderPath, std::string fragmentShaderPath)
-{
-	ShaderProgram* shader = CreateShaderProgram(vertexShaderPath.c_str(), fragmentShaderPath.c_str());
-	GameObject gameObject = GameObject(name, mesh, shader);
-	return gameObject;
 }
 
 void CheckGLError(const char* file, int line)

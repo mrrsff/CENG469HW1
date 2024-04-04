@@ -15,8 +15,8 @@
 class ShaderProgram {
 public:
     // Constructor reads and builds the shader
-    ShaderProgram();
     ShaderProgram(const char* vertexPath, const char* fragmentPath);
+    void AddGeometryShader(const char* geometryPath);
     // Use/activate the shader
     void use();
     void unuse();
