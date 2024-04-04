@@ -85,7 +85,7 @@ Vector3 objScale = Vector3(1.0f, 1.0f, 1.0f);
 
 Mesh* triangleCubeMesh;
 Mesh* quadCubeMesh;
-int subdivLevel = 10;
+int subdivLevel = 6;
 
 double context_time = 0.0;
 
